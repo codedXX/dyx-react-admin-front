@@ -129,6 +129,10 @@ export const menuApi = {
   // 删除菜单
   delete: (id: number) =>
     api.delete(`/menus/${id}`),
+
+  // 获取当前用户的菜单（基于角色权限）
+  getUserMenus: () =>
+    api.get('/menus/user-menus'),
 };
 
 // ============= 文章管理 =============

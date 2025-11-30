@@ -7,16 +7,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Bell, LogOut, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ThemeSettings from './components/ThemeSettings';
-import Login from './views/Login';
-import Dashboard from './views/Dashboard';
-import UserManagement from './views/System/User';
-import RoleManagement from './views/System/Role';
-import MenuManagement from './views/System/Menu';
-import Editor from './views/Article/Editor';
-import Preview from './views/Article/Preview';
-import ExcelPage from './views/Excel';
-import Chat from './views/Chat';
 import { MENU_ITEMS } from './services/mockData';
+import { loadComponent } from './utils/dynamicImport';
 
 // ---- Components for Layout ----
 
@@ -169,34 +161,20 @@ const MainLayout: React.FC = () => {
           {/* We render ALL tabs that are in the store, but hide the inactive ones. 
                This preserves their DOM and React State. */}
           {tabs.map(tab => {
-            // Find Component based on path mapping (simple registry)
-            let Component = null;
+            // 动态加载组件
+            const Component = loadComponent(tab.key);
             const routeInfo = allRoutes.find(r => r.path === tab.key);
-            // Simple Map for demo
-            switch (tab.key) {
-              case '/dashboard': Component = <Dashboard />; break;
-              case '/system/user': Component = <UserManagement />; break;
-              case '/system/role': Component = <RoleManagement />; break;
-              case '/system/menu': Component = <MenuManagement />; break;
-              case '/article/editor': Component = <Editor />; break;
-              case '/article/preview': Component = <Preview />; break;
-              case '/excel': Component = <ExcelPage />; break;
-              case '/chat': Component = <Chat />; break;
-              default: Component = <div className="p-10 text-center">未找到组件</div>;
-            }
 
-            // If keepAlive is false for this route configuration, we might choose NOT to render it hidden,
-            // but for simplicity in this "Customizable KeepAlive" demo, 
-            // we assume tabs implies kept-alive, unless we force unmount logic.
-            // To truly respect "keepAlive: false", we would conditionally render:
+            // keepAlive 可能是 boolean (true/false) 或 number (0/1)
+            // 需要正确处理这两种情况
+            const shouldKeepAlive = routeInfo?.keepAlive === true || routeInfo?.keepAlive === 1;
 
-            const shouldKeepAlive = routeInfo?.keepAlive !== false;
-
+            // 如果不需要缓存，且当前路由不是激活状态，则不渲染（完全卸载）
             if (!shouldKeepAlive && location.pathname !== tab.key) return null;
 
             return (
               <PageContainer key={tab.key} isVisible={location.pathname === tab.key}>
-                {Component}
+                <Component />
               </PageContainer>
             )
           })}
@@ -264,6 +242,8 @@ const App = () => {
 
   }, [primaryColor]);
 
+  const LoginComponent = loadComponent('/login');
+
   return (
     <ConfigProvider
       locale={zhCN}
@@ -275,7 +255,7 @@ const App = () => {
     >
       <HashRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginComponent />} />
           <Route path="/*" element={
             <PrivateRoute>
               <MainLayout />

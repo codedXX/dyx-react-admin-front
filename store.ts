@@ -72,7 +72,7 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   setActiveTab: (key) => set({ activeTabKey: key }),
   fetchMenus: async () => {
     try {
-      const response: any = await menuApi.getTree();
+      const response: any = await menuApi.getUserMenus();
       if (response.code === 200) {
         set({ menus: response.data });
       }

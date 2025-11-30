@@ -18,6 +18,9 @@ public class MenuController {
     @Autowired
     private MenuService menuService;
     
+    @Autowired
+    private com.admin.util.JwtUtil jwtUtil;
+    
     /**
      * 查询菜单树
      */
@@ -25,6 +28,25 @@ public class MenuController {
     public ApiResponse<List<Menu>> getMenuTree() {
         List<Menu> menus = menuService.getMenuTree();
         return ApiResponse.success(menus);
+    }
+    
+    /**
+     * 获取当前用户的菜单树（基于角色权限）
+     */
+    @GetMapping("/user-menus")
+    public ApiResponse<List<Menu>> getUserMenus(@RequestHeader("Authorization") String token) {
+        try {
+            // 移除 "Bearer " 前缀
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            // 从token获取用户ID
+            Long userId = jwtUtil.getUserIdFromToken(token);
+            List<Menu> menus = menuService.getMenusByUserId(userId);
+            return ApiResponse.success(menus);
+        } catch (Exception e) {
+            return ApiResponse.error("获取菜单失败: " + e.getMessage());
+        }
     }
     
     /**

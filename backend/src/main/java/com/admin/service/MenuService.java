@@ -16,6 +16,12 @@ import java.util.stream.Collectors;
 @Service
 public class MenuService extends ServiceImpl<MenuMapper, Menu> {
     
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.admin.mapper.UserMapper userMapper;
+    
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.admin.mapper.RoleMenuMapper roleMenuMapper;
+    
     /**
      * 查询菜单树
      */
@@ -69,5 +75,53 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> {
      */
     public boolean deleteMenu(Long id) {
         return removeById(id);
+    }
+    
+    /**
+     * 根据用户ID获取菜单树（基于角色权限）
+     */
+    public List<Menu> getMenusByUserId(Long userId) {
+        // 1. 获取用户信息
+        com.admin.entity.User user = userMapper.selectById(userId);
+        if (user == null) {
+            return new ArrayList<>();
+        }
+        
+        // 2. 获取用户角色的菜单ID列表
+        List<com.admin.entity.RoleMenu> roleMenus = roleMenuMapper.selectList(
+            new QueryWrapper<com.admin.entity.RoleMenu>()
+                .eq("role_id", user.getRoleId())
+        );
+        
+        if (roleMenus.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<Long> menuIds = roleMenus.stream()
+            .map(com.admin.entity.RoleMenu::getMenuId)
+            .collect(Collectors.toList());
+        
+        // 3. 查询菜单（只查询有权限的菜单）
+        QueryWrapper<Menu> wrapper = new QueryWrapper<>();
+        wrapper.in("id", menuIds);
+        wrapper.orderByAsc("sort_order");
+        List<Menu> authorizedMenus = list(wrapper);
+        
+        // 4. 构建树形结构
+        List<Menu> rootMenus = new ArrayList<>();
+        for (Menu menu : authorizedMenus) {
+            if (menu.getParentId() == 0) {
+                rootMenus.add(menu);
+            }
+            for (Menu child : authorizedMenus) {
+                if (child.getParentId().equals(menu.getId())) {
+                    if (menu.getChildren() == null) {
+                        menu.setChildren(new ArrayList<>());
+                    }
+                    menu.getChildren().add(child);
+                }
+            }
+        }
+        return rootMenus;
     }
 }

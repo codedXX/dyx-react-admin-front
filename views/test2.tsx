@@ -1,5 +1,5 @@
 export default () => {
-    return (<div>test1
+    return (<div>test2
         <input type="text" />
     </div>)
 }
