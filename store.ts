@@ -1,10 +1,13 @@
 import { create } from 'zustand';
-import { User, UserRole, TabItem, MenuItem } from './types';
+import { User, TabItem, MenuItem } from './types';
+import { menuApi } from './services/api';
 
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
-  login: (username: string) => void;
+  permissions: string[]; // 新增权限列表
+  login: (user: User, token: string) => void;
+  setPermissions: (permissions: string[]) => void;
   logout: () => void;
 }
 
@@ -13,24 +16,24 @@ export const useAuthStore = create<AuthState>((set) => {
   return {
     isAuthenticated: !!token,
     user: token ? JSON.parse(localStorage.getItem('user') || 'null') : null,
-    login: (username) => {
-      const userObj = {
-        id: '1',
-        username,
-        avatar: 'https://picsum.photos/200',
-        role: username === 'admin' ? UserRole.ADMIN : UserRole.EDITOR, // Simple role logic for demo
-        email: `${username}@example.com`
-      };
-      localStorage.setItem('user', JSON.stringify(userObj));
+    permissions: JSON.parse(localStorage.getItem('permissions') || '[]'),
+    login: (user, token) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       set({
         isAuthenticated: true,
-        user: userObj
+        user: user
       });
+    },
+    setPermissions: (permissions) => {
+      localStorage.setItem('permissions', JSON.stringify(permissions));
+      set({ permissions });
     },
     logout: () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      set({ isAuthenticated: false, user: null });
+      localStorage.removeItem('permissions');
+      set({ isAuthenticated: false, user: null, permissions: [] });
     }
   };
 });
@@ -46,8 +49,6 @@ interface LayoutState {
   menus: MenuItem[];
   fetchMenus: () => Promise<void>;
 }
-
-import { menuApi } from './services/api';
 
 export const useLayoutStore = create<LayoutState>((set) => ({
   collapsed: false,

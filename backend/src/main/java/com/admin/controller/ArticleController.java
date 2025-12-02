@@ -1,5 +1,6 @@
 package com.admin.controller;
 
+import com.admin.annotation.RequiresPermission;
 import com.admin.dto.ApiResponse;
 import com.admin.entity.Article;
 import com.admin.service.ArticleService;
@@ -15,13 +16,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/articles")
 public class ArticleController {
-    
+
     @Autowired
     private ArticleService articleService;
-    
+
     /**
      * 分页查询文章列表
      */
+    @RequiresPermission("article:list")
     @GetMapping
     public ApiResponse<List<Article>> getArticles(
             @RequestParam(defaultValue = "1") int page,
@@ -34,28 +36,31 @@ public class ArticleController {
         Page<Article> articlePage = articleService.getArticlePage(page, size);
         return ApiResponse.success(articlePage.getRecords());
     }
-    
+
     /**
      * 根据ID查询文章
      */
+    @RequiresPermission("article:list")
     @GetMapping("/{id}")
     public ApiResponse<Article> getArticleById(@PathVariable Long id) {
         Article article = articleService.getArticleById(id);
         return ApiResponse.success(article);
     }
-    
+
     /**
      * 保存文章
      */
+    @RequiresPermission("article:add")
     @PostMapping
     public ApiResponse<Void> saveArticle(@RequestBody Article article) {
         boolean success = articleService.saveArticle(article);
         return success ? ApiResponse.success() : ApiResponse.error("保存失败");
     }
-    
+
     /**
      * 删除文章
      */
+    @RequiresPermission("article:delete")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteArticle(@PathVariable Long id) {
         boolean success = articleService.deleteArticle(id);

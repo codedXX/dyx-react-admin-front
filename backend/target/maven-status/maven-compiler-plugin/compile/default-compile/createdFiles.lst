@@ -1,5 +1,6 @@
 com\admin\config\WebConfig.class
 com\admin\mapper\UserMapper.class
+com\admin\mapper\RoleMenuMapper.class
 com\admin\dto\ApiResponse.class
 com\admin\util\JwtUtil.class
 com\admin\controller\RoleController.class
@@ -18,11 +19,13 @@ com\admin\controller\ExcelController$1.class
 com\admin\controller\ExcelController.class
 com\admin\config\WebSocketConfig.class
 com\admin\controller\ArticleController.class
+com\admin\config\MybatisPlusConfig.class
 com\admin\controller\ChatController.class
 com\admin\controller\UserController.class
 com\admin\service\ArticleService.class
 com\admin\entity\ChatMessage.class
 com\admin\mapper\ArticleMapper.class
+com\admin\entity\RoleMenu.class
 com\admin\entity\Role.class
 com\admin\entity\User.class
 com\admin\dto\LoginResponse$UserInfo.class

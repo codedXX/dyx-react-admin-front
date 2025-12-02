@@ -9,7 +9,7 @@ export interface User {
   id: string;
   username: string;
   avatar: string;
-  role: UserRole;
+  roles: string[]; // 修改为角色数组
   email: string;
 }
 
@@ -19,7 +19,11 @@ export interface MenuItem {
   path: string;
   icon?: string;
   children?: MenuItem[];
-  keepAlive?: boolean;
+  keepAlive?: number; // 0: 关闭, 1: 开启
+  type?: 'menu' | 'button';
+  permission?: string;
+  parentId?: number;
+  sortOrder?: number;
 }
 
 export interface TabItem {
