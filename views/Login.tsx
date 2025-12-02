@@ -22,12 +22,8 @@ const Login: React.FC = () => {
       const response: any = await authApi.login({ username, password });
 
       if (response.code === 200) {
-        // 保存Token和用户信息
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.userInfo));
-
-        // 更新Store
-        login(response.data.userInfo.username);
+        // 更新Store（Store 内部会自动保存到 localStorage）
+        login(response.data.userInfo, response.data.token);
 
         // 跳转到仪表盘
         navigate('/dashboard');

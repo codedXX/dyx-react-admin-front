@@ -36,12 +36,15 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         // 获取Token
         String token = request.getHeader("Authorization");
+        System.out.println("[DEBUG] Authorization Header: " + token);
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
+        System.out.println("[DEBUG] Extracted Token: " + token);
 
         // 验证Token
         if (token == null || !jwtUtil.validateToken(token)) {
+            System.out.println("[DEBUG] Token validation failed! Token is null: " + (token == null));
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             try {
@@ -54,6 +57,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         // 将用户ID存入请求属性,供后续使用
         Long userId = jwtUtil.getUserIdFromToken(token);
+        System.out.println("[DEBUG] User ID from token: " + userId);
         request.setAttribute("userId", userId);
         request.setAttribute("token", token);
 

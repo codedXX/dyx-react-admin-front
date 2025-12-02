@@ -12,6 +12,8 @@ com\admin\service\UserService.class
 com\admin\AdminApplication.class
 com\admin\dto\LoginResponse.class
 com\admin\entity\Article.class
+com\admin\annotation\RequiresPermission.class
+com\admin\service\PermissionService.class
 com\admin\controller\AuthController.class
 com\admin\mapper\ChatMessageMapper.class
 com\admin\service\AuthService.class
@@ -20,6 +22,7 @@ com\admin\controller\ExcelController.class
 com\admin\config\WebSocketConfig.class
 com\admin\controller\ArticleController.class
 com\admin\config\MybatisPlusConfig.class
+com\admin\interceptor\PermissionInterceptor.class
 com\admin\controller\ChatController.class
 com\admin\controller\UserController.class
 com\admin\service\ArticleService.class
@@ -29,6 +32,9 @@ com\admin\entity\RoleMenu.class
 com\admin\entity\Role.class
 com\admin\entity\User.class
 com\admin\dto\LoginResponse$UserInfo.class
+com\admin\interceptor\JwtAuthInterceptor.class
 com\admin\mapper\RoleMapper.class
 com\admin\controller\MenuController.class
+com\admin\entity\UserRole.class
+com\admin\mapper\UserRoleMapper.class
 com\admin\service\MenuService.class
