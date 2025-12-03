@@ -2,9 +2,10 @@ package com.admin.service;
 
 import com.admin.entity.Menu;
 import com.admin.entity.UserRole;
+import com.admin.entity.RoleMenu;
 import com.admin.mapper.MenuMapper;
-import com.admin.mapper.UserRoleMapper;
 import com.admin.mapper.RoleMenuMapper;
+import com.admin.mapper.UserRoleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,9 +91,9 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> {
                 .collect(Collectors.toList());
 
         // 2. 获取所有角色的菜单ID列表(合并去重)
-        QueryWrapper<com.admin.entity.RoleMenu> roleMenuWrapper = new QueryWrapper<>();
+        QueryWrapper<RoleMenu> roleMenuWrapper = new QueryWrapper<>();
         roleMenuWrapper.in("role_id", roleIds);
-        List<com.admin.entity.RoleMenu> roleMenus = roleMenuMapper.selectList(roleMenuWrapper);
+        List<RoleMenu> roleMenus = roleMenuMapper.selectList(roleMenuWrapper);
 
         if (roleMenus.isEmpty()) {
             return new ArrayList<>();
@@ -100,7 +101,7 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> {
 
         // 去重菜单ID
         List<Long> menuIds = roleMenus.stream()
-                .map(com.admin.entity.RoleMenu::getMenuId)
+                .map(RoleMenu::getMenuId)
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -133,16 +134,16 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> {
                 .collect(Collectors.toList());
 
         // 2. 获取所有角色的菜单ID列表
-        QueryWrapper<com.admin.entity.RoleMenu> roleMenuWrapper = new QueryWrapper<>();
+        QueryWrapper<RoleMenu> roleMenuWrapper = new QueryWrapper<>();
         roleMenuWrapper.in("role_id", roleIds);
-        List<com.admin.entity.RoleMenu> roleMenus = roleMenuMapper.selectList(roleMenuWrapper);
+        List<RoleMenu> roleMenus = roleMenuMapper.selectList(roleMenuWrapper);
 
         if (roleMenus.isEmpty()) {
             return new ArrayList<>();
         }
 
         List<Long> menuIds = roleMenus.stream()
-                .map(com.admin.entity.RoleMenu::getMenuId)
+                .map(RoleMenu::getMenuId)
                 .distinct()
                 .collect(Collectors.toList());
 

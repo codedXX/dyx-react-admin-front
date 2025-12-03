@@ -1,7 +1,11 @@
 package com.admin.config;
 
+import com.admin.interceptor.JwtAuthInterceptor;
+import com.admin.interceptor.PermissionInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -10,11 +14,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.admin.interceptor.JwtAuthInterceptor jwtAuthInterceptor;
+    @Autowired
+    private JwtAuthInterceptor jwtAuthInterceptor;
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.admin.interceptor.PermissionInterceptor permissionInterceptor;
+    @Autowired
+    private PermissionInterceptor permissionInterceptor;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -27,7 +31,7 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
-    public void addInterceptors(org.springframework.web.servlet.config.annotation.InterceptorRegistry registry) {
+    public void addInterceptors(InterceptorRegistry registry) {
         // 注册JWT认证拦截器
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/api/**")

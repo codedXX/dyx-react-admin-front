@@ -4,6 +4,7 @@ import com.admin.annotation.RequiresPermission;
 import com.admin.dto.ApiResponse;
 import com.admin.entity.Menu;
 import com.admin.service.MenuService;
+import com.admin.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class MenuController {
     private MenuService menuService;
 
     @Autowired
-    private com.admin.util.JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
 
     /**
      * 查询菜单树
