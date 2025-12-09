@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store';
+import { useAuthStore } from '@/store';
 import { Lock, User, ArrowRight, LayoutDashboard } from 'lucide-react';
-import { authApi } from '../services/api';
+import { authApi } from '@/services/api';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('admin');
