@@ -6,17 +6,17 @@ import { Lock, User, ArrowRight, LayoutDashboard } from 'lucide-react';
 import { authApi } from '@/services/api';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('123456');
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("123456");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const response: any = await authApi.login({ username, password });
@@ -26,12 +26,12 @@ const Login: React.FC = () => {
         login(response.data.userInfo, response.data.token);
 
         // 跳转到仪表盘
-        navigate('/dashboard');
+        navigate("/dashboard");
       } else {
-        setError(response.message || '登录失败');
+        setError(response.message || "登录失败");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || '登录失败，请检查网络连接');
+      setError(err.response?.data?.message || "登录失败，请检查网络连接");
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,9 @@ const Login: React.FC = () => {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">用户名</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              用户名
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={18} className="text-slate-400" />
@@ -88,7 +90,9 @@ const Login: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">密码</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              密码
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock size={18} className="text-slate-400" />
@@ -105,10 +109,18 @@ const Login: React.FC = () => {
 
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <input
+                type="checkbox"
+                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              />
               <span className="text-slate-600">记住我</span>
             </label>
-            <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">忘记密码？</a>
+            <a
+              href="#"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              忘记密码？
+            </a>
           </div>
 
           <button
