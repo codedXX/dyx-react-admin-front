@@ -8,6 +8,7 @@ import MainLayout from "@/views/Layout/index";
 
 export const PrivateRoute: React.FC = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  //组件返回<Outlet />，意味着“允许通过”
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
 };
 

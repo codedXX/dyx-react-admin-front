@@ -34,7 +34,6 @@ const Header: React.FC = () => {
                     <img src={user?.avatar} alt="Avatar" className="w-8 h-8 rounded-full border border-slate-200" />
                     <div className="hidden md:block">
                         <p className="text-sm font-medium text-slate-700">{user?.username}</p>
-                        <p className="text-xs text-slate-400">{user?.role}</p>
                     </div>
                     <button onClick={() => { logout(); navigate('/login'); }} className="ml-2 text-slate-400 hover:text-rose-500 transition-colors">
                         <LogOut size={18} />
