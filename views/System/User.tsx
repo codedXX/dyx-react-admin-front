@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button } from "../../components/ui/LayoutComponents";
+import { Card, Button } from "@/components/ui/LayoutComponents";
 import { Edit, Trash, Plus } from "lucide-react";
-import { userApi } from "../../services/api";
+import { userApi } from "@/services/api";
 import { message, Modal, Form, Input, Select } from "antd";
 import "./User.scss";
 

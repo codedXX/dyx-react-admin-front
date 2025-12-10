@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { User, TabItem, MenuItem } from './types';
-import { menuApi } from './services/api';
+import { User, TabItem, MenuItem } from '@/types';
+import { menuApi } from '@/services/api';
 
 interface AuthState {
   isAuthenticated: boolean;

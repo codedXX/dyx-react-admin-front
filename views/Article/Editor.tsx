@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { Card, Button } from '../../components/ui/LayoutComponents';
-import { Save } from 'lucide-react';
-import { articleApi } from '../../services/api';
-import { message } from 'antd'; // Added message import
+import React, { useState } from "react";
+import { Card, Button } from "@/components/ui/LayoutComponents";
+import { Save } from "lucide-react";
+import { articleApi } from "@/services/api";
+import { message } from "antd"; // Added message import
 
 const Editor: React.FC = () => {
-  const [content, setContent] = useState('# 你好，世界\n\n在这里开始撰写你的精彩文章...');
-  const [title, setTitle] = useState('新文章');
+  const [content, setContent] = useState(
+    "# 你好，世界\n\n在这里开始撰写你的精彩文章..."
+  );
+  const [title, setTitle] = useState("新文章");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -20,13 +22,13 @@ const Editor: React.FC = () => {
       });
 
       if (response.code === 200) {
-        message.success('文章保存成功！'); // Replaced alert with message.success
+        message.success("文章保存成功！"); // Replaced alert with message.success
       } else {
-        message.error('保存失败：' + response.message); // Replaced alert with message.error
+        message.error("保存失败：" + response.message); // Replaced alert with message.error
       }
     } catch (error) {
-      console.error('保存失败:', error); // Added console.error for debugging
-      message.error('保存失败，请检查网络连接'); // Replaced alert with message.error
+      console.error("保存失败:", error); // Added console.error for debugging
+      message.error("保存失败，请检查网络连接"); // Replaced alert with message.error
     } finally {
       setSaving(false);
     }
@@ -39,7 +41,7 @@ const Editor: React.FC = () => {
         className="flex-1 flex flex-col"
         actions={
           <Button onClick={handleSave} variant="primary" disabled={saving}>
-            <Save size={16} /> {saving ? '保存中...' : '保存文章'}
+            <Save size={16} /> {saving ? "保存中..." : "保存文章"}
           </Button>
         }
       >

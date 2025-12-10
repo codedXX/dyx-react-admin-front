@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button } from "../../components/ui/LayoutComponents";
+import { Card, Button } from "@/components/ui/LayoutComponents";
 import {
   Edit,
   Trash,
@@ -8,9 +8,9 @@ import {
   FileText,
   MousePointer,
 } from "lucide-react";
-import { menuApi } from "../../services/api";
+import { menuApi } from "@/services/api";
 import { message, TreeSelect } from "antd";
-import { MenuItem } from "../../types"; // 使用 types.ts 中的定义
+import { MenuItem } from "@/types"; // 使用 types.ts 中的定义
 
 const MenuManagement: React.FC = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);

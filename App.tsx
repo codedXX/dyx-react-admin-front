@@ -1,42 +1,9 @@
-import React, { useEffect } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import { useAuthStore, useThemeStore } from './store';
-import { loadComponent } from './utils/dynamicImport';
-import MainLayout from '@/views/layout/index';
-
-// ---- 路由保护组件 ----
-
-const PrivateRoute: React.FC = () => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
-};
-
-// ---- 路由配置 ----
-
-const LoginComponent = loadComponent('/login');
-
-const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <LoginComponent />
-  },
-  {
-    path: '/',
-    element: <PrivateRoute />,
-    children: [
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />
-      },
-      {
-        path: '*',
-        element: <MainLayout />
-      }
-    ]
-  }
-]);
+import React, { useEffect } from "react";
+import { RouterProvider } from "react-router-dom";
+import { ConfigProvider } from "antd";
+import zhCN from "antd/locale/zh_CN";
+import { useThemeStore } from "@/store";
+import { router } from "@/router";
 
 // ---- App 主组件 ----
 
@@ -46,7 +13,7 @@ const App = () => {
   useEffect(() => {
     // 为 Tailwind 生成 CSS 变量
     const root = document.documentElement;
-    root.style.setProperty('--primary-color', primaryColor);
+    root.style.setProperty("--primary-color", primaryColor);
 
     // 简化的色阶生成（生产环境建议使用 tinycolor2 或 colord 库）
     const hex2rgb = (hex: string) => {
@@ -65,7 +32,7 @@ const App = () => {
       200: 0.8,
       300: 0.7,
       400: 0.6,
-      500: 0,   // 基础色
+      500: 0, // 基础色
       600: -0.1,
       700: -0.2,
       800: -0.3,
@@ -87,9 +54,11 @@ const App = () => {
         newG = g * f;
         newB = b * f;
       }
-      root.style.setProperty(`--primary-${shade}`, `rgb(${Math.round(newR)}, ${Math.round(newG)}, ${Math.round(newB)})`);
+      root.style.setProperty(
+        `--primary-${shade}`,
+        `rgb(${Math.round(newR)}, ${Math.round(newG)}, ${Math.round(newB)})`
+      );
     });
-
   }, [primaryColor]);
 
   return (
