@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { AliveScope, KeepAlive, useAliveController } from 'react-activation';
 import { Menu, Bell, LogOut, X } from 'lucide-react';
 import { useAuthStore, useLayoutStore } from '@/store';
 import Sidebar from '@/components/Sidebar';
@@ -49,6 +50,7 @@ const Header: React.FC = () => {
 const Tabs: React.FC = () => {
     const { tabs, activeTabKey, setActiveTab, removeTab } = useLayoutStore();
     const navigate = useNavigate();
+    const { dropScope } = useAliveController();
 
     const handleTabClick = (path: string) => {
         setActiveTab(path);
@@ -57,13 +59,9 @@ const Tabs: React.FC = () => {
 
     const handleClose = (e: React.MouseEvent, key: string) => {
         e.stopPropagation();
+        dropScope(key);
         removeTab(key);
     };
-
-    useEffect(() => {
-        // 确保路由与激活标签页同步
-        navigate(activeTabKey);
-    }, [activeTabKey, navigate]);
 
     return (
         <div className="bg-white px-4 border-b border-slate-100 flex items-center gap-2 overflow-x-auto h-10 scrollbar-hide">
@@ -95,19 +93,10 @@ const Tabs: React.FC = () => {
 
 // ---- PageContainer 组件（KeepAlive 实现） ----
 
-const PageContainer: React.FC<{ children: React.ReactNode, isVisible: boolean }> = ({ children, isVisible }) => {
+const PageContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
-        <div
-            className="w-full h-full"
-            style={{ display: isVisible ? 'block' : 'none' }}
-        >
-            <motion.div
-                initial={false}
-                animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 10 }}
-                transition={{ duration: 0.3 }}
-            >
-                {children}
-            </motion.div>
+        <div className="w-full h-full bg-white rounded-lg shadow-sm p-6 overflow-auto">
+            {children}
         </div>
     );
 };
@@ -126,7 +115,11 @@ const flattenRoutes = (items: any[]): any[] => {
 const MainLayout: React.FC = () => {
     const { tabs, addTab, setActiveTab, fetchMenus, menus } = useLayoutStore();
     const location = useLocation();
-    const allRoutes = flattenRoutes(menus.length > 0 ? menus : MENU_ITEMS);
+
+    // 使用 useMemo 缓存扁平化路由，避免每次渲染重新计算
+    const allRoutes = useMemo(() => {
+        return flattenRoutes(menus.length > 0 ? menus : MENU_ITEMS);
+    }, [menus]);
 
     useEffect(() => {
         fetchMenus();
@@ -147,35 +140,44 @@ const MainLayout: React.FC = () => {
     }, [location.pathname, addTab, setActiveTab]);
 
     return (
-        <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0">
-                <Header />
-                <Tabs />
+        <AliveScope>
+            <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-w-0">
+                    <Header />
+                    <Tabs />
 
-                <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden relative">
-                    {/* KeepAlive 路由出口 */}
-                    {/* 渲染所有标签页，隐藏非激活的标签页以保留其 DOM 和状态 */}
-                    {tabs.map(tab => {
-                        // 动态加载组件
-                        const Component = loadComponent(tab.key);
-                        const routeInfo = allRoutes.find(r => r.path === tab.key);
+                    <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden relative">
+                        {/* KeepAlive 路由出口 - 渲染所有标签页 */}
+                        {tabs.map(tab => {
+                            const Component = loadComponent(tab.key);
+                            const routeInfo = allRoutes.find(r => r.path === tab.key);
+                            const shouldKeepAlive = routeInfo?.keepAlive === true || routeInfo?.keepAlive === 1;
+                            const isActive = location.pathname === tab.key;
 
-                        // keepAlive 可能是 boolean (true/false) 或 number (0/1)
-                        const shouldKeepAlive = routeInfo?.keepAlive === true || routeInfo?.keepAlive === 1;
+                            // 如果不需要缓存且不是当前页面，不渲染
+                            if (!shouldKeepAlive && !isActive) return null;
 
-                        // 如果不需要缓存，且当前路由不是激活状态，则不渲染（完全卸载）
-                        if (!shouldKeepAlive && location.pathname !== tab.key) return null;
-
-                        return (
-                            <PageContainer key={tab.key} isVisible={location.pathname === tab.key}>
-                                <Component />
-                            </PageContainer>
-                        )
-                    })}
-                </main>
+                            return (
+                                <div
+                                    key={tab.key}
+                                    style={{
+                                        display: isActive ? 'block' : 'none',
+                                        height: '100%'
+                                    }}
+                                >
+                                    <KeepAlive name={tab.key} when={shouldKeepAlive} id={tab.key}>
+                                        <PageContainer>
+                                            <Component />
+                                        </PageContainer>
+                                    </KeepAlive>
+                                </div>
+                            );
+                        })}
+                    </main>
+                </div>
             </div>
-        </div>
+        </AliveScope>
     );
 };
 

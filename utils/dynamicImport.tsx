@@ -8,7 +8,7 @@ const modules = import.meta.glob("../views/**/*.tsx");
 const componentCache = new Map<string, ComponentType<any>>();
 
 /**
- * 动态加载组件（使用 import.meta.glob）
+ * 动态加载组件（使用 React.lazy + Suspense）
  * @param path 路由路径，如 /dashboard, /system/menu
  * @returns React 组件
  */
@@ -76,69 +76,33 @@ export const loadComponent = (path: string): ComponentType<any> => {
     }
   }
 
-  // 创建组件
-  const WrappedComponent: ComponentType<any> = (props: any) => {
-    if (!matchedModule) {
-      return (
-        <div className="p-10 text-center">
-          <div className="text-red-500 mb-2">组件加载失败</div>
-          <div className="text-sm text-slate-500">路径: {path}</div>
-          <div className="text-sm text-slate-500 mt-2">尝试过的路径:</div>
-          <ul className="text-xs text-slate-400 mt-1">
-            {possiblePaths.map((p, i) => (
-              <li key={i}>{p}</li>
-            ))}
-          </ul>
-          <div className="text-sm text-slate-500 mt-2">可用的组件:</div>
-          <ul className="text-xs text-slate-400 mt-1">
-            {Object.keys(modules)
-              .slice(0, 10)
-              .map((p, i) => (
-                <li key={i}>{p}</li>
-              ))}
-          </ul>
-        </div>
-      );
-    }
-
-    const [Component, setComponent] = React.useState<ComponentType<any> | null>(
-      null
+  // 如果找不到模块，返回错误组件
+  if (!matchedModule) {
+    const ErrorComponent: ComponentType<any> = () => (
+      <div className="p-10 text-center">
+        <div className="text-red-500 mb-2">组件加载失败</div>
+        <div className="text-sm text-slate-500">路径: {path}</div>
+        <div className="text-sm text-slate-500 mt-2">尝试过的路径:</div>
+        <ul className="text-xs text-slate-400 mt-1">
+          {possiblePaths.map((p, i) => (
+            <li key={i}>{p}</li>
+          ))}
+        </ul>
+      </div>
     );
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState<Error | null>(null);
+    componentCache.set(path, ErrorComponent);
+    return ErrorComponent;
+  }
 
-    React.useEffect(() => {
-      matchedModule!()
-        .then((module) => {
-          console.log(
-            `✅ Successfully loaded: ${matchedPath} for path ${path}`
-          );
-          setComponent(() => module.default);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error(`❌ Failed to load: ${matchedPath}`, err);
-          setError(err);
-          setLoading(false);
-        });
-    }, []);
+  // 使用 React.lazy 创建懒加载组件
+  const LazyComponent = React.lazy(matchedModule);
 
-    if (loading) {
-      return <div className="p-10 text-center text-slate-500">加载中...</div>;
-    }
-
-    if (error || !Component) {
-      return (
-        <div className="p-10 text-center">
-          <div className="text-red-500 mb-2">组件加载失败</div>
-          <div className="text-sm text-slate-500">路径: {path}</div>
-          <div className="text-sm text-slate-500">错误: {error?.message}</div>
-        </div>
-      );
-    }
-
-    return <Component {...props} />;
-  };
+  // 包装组件，添加 Suspense
+  const WrappedComponent: ComponentType<any> = (props: any) => (
+    <Suspense fallback={<div className="p-10 text-center text-slate-500">加载中...</div>}>
+      <LazyComponent {...props} />
+    </Suspense>
+  );
 
   // 缓存组件
   componentCache.set(path, WrappedComponent);
