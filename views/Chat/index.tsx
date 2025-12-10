@@ -5,6 +5,7 @@ import { ChatMessage } from "@/types";
 import { useAuthStore } from "@/store";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { Input } from "antd";
 
 const Chat: React.FC = () => {
   const { user } = useAuthStore();
@@ -111,7 +112,10 @@ const Chat: React.FC = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   const isMe = (sender: string) => {
@@ -177,14 +181,14 @@ const Chat: React.FC = () => {
 
         {/* Input Area */}
         <div className="p-4 bg-white border-t border-slate-100 flex gap-3">
-          <input
-            type="text"
+          <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isConnected ? "输入消息..." : "连接中..."}
             disabled={!isConnected}
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50"
+            size="large"
+            className="flex-1"
           />
           <Button
             onClick={sendMessage}

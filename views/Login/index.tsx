@@ -1,25 +1,31 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@/store';
-import { Lock, User, ArrowRight, LayoutDashboard } from 'lucide-react';
-import { authApi } from '@/services/api';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store";
+import { Lock, User, ArrowRight, LayoutDashboard } from "lucide-react";
+import { authApi } from "@/services/api";
+import { Form, Input, Checkbox, Button, Alert } from "antd";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("123456");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (values: {
+    username: string;
+    password: string;
+    remember: boolean;
+  }) => {
     setLoading(true);
     setError("");
 
     try {
-      const response: any = await authApi.login({ username, password });
+      const response: any = await authApi.login({
+        username: values.username,
+        password: values.password,
+      });
 
       if (response.code === 200) {
         // 更新Store（Store 内部会自动保存到 localStorage）
@@ -58,86 +64,92 @@ const Login: React.FC = () => {
         className="bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md relative z-10"
       >
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center mb-4 shadow-lg shadow-primary-200">
+          <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center mb-4 shadow-lg shadow-primary-200 mx-auto">
             <LayoutDashboard className="text-white" size={24} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800">React Admin Pro</h2>
           <p className="text-slate-500 mt-2">企业级后台管理系统解决方案</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <Form
+          form={form}
+          onFinish={handleLogin}
+          layout="vertical"
+          initialValues={{
+            username: "admin",
+            password: "123456",
+            remember: false,
+          }}
+          className="space-y-1"
+        >
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
+            <Alert message={error} type="error" showIcon className="mb-4" />
           )}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              用户名
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User size={18} className="text-slate-400" />
-              </div>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors outline-none text-slate-600"
-                placeholder="请输入用户名"
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              密码
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock size={18} className="text-slate-400" />
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors outline-none text-slate-600"
-                placeholder="请输入密码"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-              />
-              <span className="text-slate-600">记住我</span>
-            </label>
-            <a
-              href="#"
-              className="text-primary-600 hover:text-primary-700 font-medium"
-            >
-              忘记密码？
-            </a>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70"
+          <Form.Item
+            name="username"
+            label={
+              <span className="text-sm font-medium text-slate-700">用户名</span>
+            }
+            rules={[{ required: true, message: "请输入用户名" }]}
           >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>登录系统</span>
-                <ArrowRight size={18} />
-              </>
-            )}
-          </button>
-        </form>
+            <Input
+              prefix={<User size={18} className="text-slate-400" />}
+              placeholder="请输入用户名"
+              size="large"
+              className="rounded-lg"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label={
+              <span className="text-sm font-medium text-slate-700">密码</span>
+            }
+            rules={[{ required: true, message: "请输入密码" }]}
+          >
+            <Input.Password
+              prefix={<Lock size={18} className="text-slate-400" />}
+              placeholder="请输入密码"
+              size="large"
+              className="rounded-lg"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <div className="flex items-center justify-between">
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox>
+                  <span className="text-slate-600">记住我</span>
+                </Checkbox>
+              </Form.Item>
+              <a
+                href="#"
+                className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+              >
+                忘记密码？
+              </a>
+            </div>
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              size="large"
+              block
+              className="h-11 rounded-lg font-medium shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2"
+            >
+              {!loading && (
+                <>
+                  <span>登录系统</span>
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </Button>
+          </Form.Item>
+        </Form>
 
         <div className="mt-6 text-center text-xs text-slate-400">
           提示: 此演示环境可使用任意用户名/密码登录。
