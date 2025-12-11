@@ -143,8 +143,10 @@ const Login: React.FC = () => {
             >
               {!loading && (
                 <>
-                  <span>登录系统</span>
-                  <ArrowRight size={18} />
+                  <span className="flex items-center">
+                    <span>登录系统</span>
+                    <ArrowRight size={18} />
+                  </span>
                 </>
               )}
             </Button>
