@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AliveScope, KeepAlive, useAliveController } from 'react-activation';
+import { KeepAlive, useAliveController } from 'react-activation';
 import { Menu, Bell, LogOut, X } from 'lucide-react';
 import { useAuthStore, useLayoutStore } from '@/store';
 import Sidebar from '@/components/Sidebar';
@@ -140,7 +140,6 @@ const MainLayout: React.FC = () => {
     }, [location.pathname, addTab, setActiveTab]);
 
     return (
-        <AliveScope>
             <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">
@@ -166,7 +165,7 @@ const MainLayout: React.FC = () => {
                                         height: '100%'
                                     }}
                                 >
-                                    <KeepAlive name={tab.key} when={shouldKeepAlive} id={tab.key}>
+                                    <KeepAlive name={tab.key} when={shouldKeepAlive}>
                                         <PageContainer>
                                             <Component />
                                         </PageContainer>
@@ -177,7 +176,6 @@ const MainLayout: React.FC = () => {
                     </main>
                 </div>
             </div>
-        </AliveScope>
     );
 };
 
