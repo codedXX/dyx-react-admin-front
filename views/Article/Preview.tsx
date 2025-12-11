@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Card } from '../../components/ui/LayoutComponents';
-import { articleApi } from '../../services/api';
+import React, { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Card } from "@/components/ui/LayoutComponents";
+import { articleApi } from "@/services/api";
 
 interface TocItem {
   id: string;
@@ -16,13 +16,13 @@ interface Article {
   content: string;
 }
 
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 
 // ... (imports)
 
 const Preview: React.FC = () => {
   const [toc, setToc] = useState<TocItem[]>([]);
-  const [activeId, setActiveId] = useState<string>('');
+  const [activeId, setActiveId] = useState<string>("");
   const [articles, setArticles] = useState<Article[]>([]);
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ const Preview: React.FC = () => {
         setCurrentArticle(response.data[0]);
       }
     } catch (error) {
-      console.error('加载文章失败', error);
+      console.error("加载文章失败", error);
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ const Preview: React.FC = () => {
 
   useEffect(() => {
     // 仅当进入预览页时刷新
-    if (location.pathname === '/article/preview') {
+    if (location.pathname === "/article/preview") {
       loadArticles();
     }
   }, [location.pathname]);
@@ -59,7 +59,7 @@ const Preview: React.FC = () => {
   useEffect(() => {
     if (!currentArticle?.content) return;
 
-    const lines = currentArticle.content.split('\n');
+    const lines = currentArticle.content.split("\n");
     const items: TocItem[] = [];
     let slugCounts: Record<string, number> = {};
 
@@ -93,10 +93,10 @@ const Preview: React.FC = () => {
           }
         });
       },
-      { rootMargin: '-80px 0px -80% 0px' }
+      { rootMargin: "-80px 0px -80% 0px" }
     );
 
-    const headings = contentRef.current?.querySelectorAll('h1, h2, h3');
+    const headings = contentRef.current?.querySelectorAll("h1, h2, h3");
     headings?.forEach((h) => observer.observe(h));
 
     return () => observer.disconnect();
@@ -106,29 +106,69 @@ const Preview: React.FC = () => {
   const components = {
     h1: ({ children, ...props }: any) => {
       const id = children?.toString().trim();
-      return <h1 id={id} className="text-3xl font-bold mb-4 mt-8 text-slate-800 border-b pb-2" {...props}>{children}</h1>;
+      return (
+        <h1
+          id={id}
+          className="text-3xl font-bold mb-4 mt-8 text-slate-800 border-b pb-2"
+          {...props}
+        >
+          {children}
+        </h1>
+      );
     },
     h2: ({ children, ...props }: any) => {
       const id = children?.toString().trim();
-      return <h2 id={id} className="text-2xl font-semibold mb-3 mt-6 text-slate-700" {...props}>{children}</h2>;
+      return (
+        <h2
+          id={id}
+          className="text-2xl font-semibold mb-3 mt-6 text-slate-700"
+          {...props}
+        >
+          {children}
+        </h2>
+      );
     },
     h3: ({ children, ...props }: any) => {
       const id = children?.toString().trim();
-      return <h3 id={id} className="text-xl font-medium mb-2 mt-4 text-slate-600" {...props}>{children}</h3>;
+      return (
+        <h3
+          id={id}
+          className="text-xl font-medium mb-2 mt-4 text-slate-600"
+          {...props}
+        >
+          {children}
+        </h3>
+      );
     },
-    p: ({ children }: any) => <p className="mb-4 text-slate-600 leading-relaxed">{children}</p>,
-    ul: ({ children }: any) => <ul className="list-disc pl-5 mb-4 text-slate-600">{children}</ul>,
+    p: ({ children }: any) => (
+      <p className="mb-4 text-slate-600 leading-relaxed">{children}</p>
+    ),
+    ul: ({ children }: any) => (
+      <ul className="list-disc pl-5 mb-4 text-slate-600">{children}</ul>
+    ),
     code: ({ inline, className, children, ...props }: any) => {
-      return inline ?
-        <code className="bg-slate-100 px-1 py-0.5 rounded text-rose-500 font-mono text-sm" {...props}>{children}</code> :
-        <pre className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto mb-4 font-mono text-sm" {...props}>{children}</pre>
-    }
+      return inline ? (
+        <code
+          className="bg-slate-100 px-1 py-0.5 rounded text-rose-500 font-mono text-sm"
+          {...props}
+        >
+          {children}
+        </code>
+      ) : (
+        <pre
+          className="bg-slate-900 text-slate-50 p-4 rounded-lg overflow-x-auto mb-4 font-mono text-sm"
+          {...props}
+        >
+          {children}
+        </pre>
+      );
+    },
   };
 
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: "smooth" });
       setActiveId(id);
     }
   };
@@ -148,10 +188,17 @@ const Preview: React.FC = () => {
         <Card className="min-h-screen">
           {articles.length > 1 && (
             <div className="mb-6 pb-4 border-b">
-              <label className="text-sm font-medium text-slate-600 mb-2 block">选择文章：</label>
+              <label className="text-sm font-medium text-slate-600 mb-2 block">
+                选择文章：
+              </label>
               <select
                 value={currentArticle.id}
-                onChange={(e) => setCurrentArticle(articles.find(a => a.id === Number(e.target.value)) || null)}
+                onChange={(e) =>
+                  setCurrentArticle(
+                    articles.find((a) => a.id === Number(e.target.value)) ||
+                      null
+                  )
+                }
                 className="w-full md:w-auto px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               >
                 {articles.map((article) => (
@@ -172,7 +219,10 @@ const Preview: React.FC = () => {
 
       {/* Sticky TOC */}
       <div className="w-64 hidden xl:block sticky top-24 shrink-0">
-        <Card title="文章目录" className="max-h-[calc(100vh-120px)] overflow-y-auto">
+        <Card
+          title="文章目录"
+          className="max-h-[calc(100vh-120px)] overflow-y-auto"
+        >
           <div className="space-y-1 relative">
             {/* Simple Active Indicator Line */}
             <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-100" />
@@ -183,9 +233,11 @@ const Preview: React.FC = () => {
                 onClick={() => scrollToHeading(item.id)}
                 className={`
                   cursor-pointer text-sm py-1 pl-4 border-l-2 transition-all duration-200
-                  ${activeId === item.id
-                    ? 'border-primary-500 text-primary-600 font-medium bg-primary-50/50'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}
+                  ${
+                    activeId === item.id
+                      ? "border-primary-500 text-primary-600 font-medium bg-primary-50/50"
+                      : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                  }
                 `}
                 style={{ marginLeft: `${(item.level - 1) * 12}px` }}
               >

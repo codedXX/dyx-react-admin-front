@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useLayoutStore } from "../store";
-
-import { MenuItem } from "../types";
+import { useLayoutStore } from "@/store";
+import { MENU_ITEMS } from "@/services/mockData";
+import { MenuItem } from "@/types";
 import * as Icons from "lucide-react";
 import { ChevronDown, ChevronRight, LayoutDashboard } from "lucide-react";
 

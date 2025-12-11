@@ -1,4 +1,4 @@
-import { MenuItem, User, UserRole } from '../types';
+import { MenuItem, User, UserRole } from '@/types';
 
 export const MENU_ITEMS: MenuItem[] = [
   { id: '1', title: '仪表盘', path: '/dashboard', icon: 'LayoutDashboard', keepAlive: true },
