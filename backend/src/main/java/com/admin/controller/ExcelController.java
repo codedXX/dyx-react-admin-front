@@ -1,6 +1,9 @@
 package com.admin.controller;
 
 import com.admin.dto.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.bind.annotation.*;
@@ -18,20 +21,23 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/excel")
+@Tag(name = "Excel导入导出", description = "Excel文件的导入导出接口")
 public class ExcelController {
-    
+
     /**
      * 导入Excel文件
      */
     @PostMapping("/import")
-    public ApiResponse<Map<String, Object>> importExcel(@RequestParam("file") MultipartFile file) {
+    @Operation(summary = "导入Excel", description = "导入Excel文件并解析数据")
+    public ApiResponse<Map<String, Object>> importExcel(
+            @Parameter(description = "Excel文件") @RequestParam("file") MultipartFile file) {
         try {
             Workbook workbook = WorkbookFactory.create(file.getInputStream());
             Sheet sheet = workbook.getSheetAt(0);
-            
+
             List<String> headers = new ArrayList<>();
             List<List<Object>> data = new ArrayList<>();
-            
+
             // 读取表头
             Row headerRow = sheet.getRow(0);
             if (headerRow != null) {
@@ -39,7 +45,7 @@ public class ExcelController {
                     headers.add(getCellValue(cell));
                 }
             }
-            
+
             // 读取数据行
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -52,39 +58,40 @@ public class ExcelController {
                     data.add(rowData);
                 }
             }
-            
+
             workbook.close();
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("headers", headers);
             result.put("data", data);
             result.put("fileName", file.getOriginalFilename());
-            
+
             return ApiResponse.success(result);
         } catch (Exception e) {
             return ApiResponse.error("导入失败：" + e.getMessage());
         }
     }
-    
+
     /**
      * 导出Excel文件
      */
     @PostMapping("/export")
+    @Operation(summary = "导出Excel", description = "将数据导出为Excel文件")
     public void exportExcel(@RequestBody Map<String, Object> requestData, HttpServletResponse response) {
         try {
             List<String> headers = (List<String>) requestData.get("headers");
             List<List<Object>> data = (List<List<Object>>) requestData.get("data");
-            
+
             Workbook workbook = new XSSFWorkbook();
             Sheet sheet = workbook.createSheet("导出数据");
-            
+
             // 创建表头
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.size(); i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers.get(i));
             }
-            
+
             // 创建数据行
             for (int i = 0; i < data.size(); i++) {
                 Row row = sheet.createRow(i + 1);
@@ -94,24 +101,25 @@ public class ExcelController {
                     cell.setCellValue(String.valueOf(rowData.get(j)));
                 }
             }
-            
+
             // 设置响应头
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=export.xlsx");
-            
+
             workbook.write(response.getOutputStream());
             workbook.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * 获取单元格值
      */
     private String getCellValue(Cell cell) {
-        if (cell == null) return "";
-        
+        if (cell == null)
+            return "";
+
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue();
