@@ -27,12 +27,8 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "通过用户名和密码登录，返回JWT Token")
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
-        try {
-            LoginResponse response = authService.login(request);
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        LoginResponse response = authService.login(request);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -52,15 +48,11 @@ public class AuthController {
     @Operation(summary = "获取当前用户信息", description = "根据Token获取当前登录用户的详细信息")
     public ApiResponse<LoginResponse.UserInfo> getUserInfo(
             @Parameter(description = "JWT Token (Bearer xxx)", required = true) @RequestHeader("Authorization") String token) {
-        try {
-            // 移除 "Bearer " 前缀
-            if (token.startsWith("Bearer ")) {
-                token = token.substring(7);
-            }
-            LoginResponse.UserInfo userInfo = authService.getUserInfo(token);
-            return ApiResponse.success(userInfo);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+        // 移除 "Bearer " 前缀
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
         }
+        LoginResponse.UserInfo userInfo = authService.getUserInfo(token);
+        return ApiResponse.success(userInfo);
     }
 }

@@ -8,8 +8,11 @@ import com.admin.entity.UserRole;
 import com.admin.mapper.RoleMapper;
 import com.admin.mapper.UserMapper;
 import com.admin.mapper.UserRoleMapper;
+import com.admin.util.Md5Util;
 import com.admin.util.JwtUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.admin.common.enums.ErrorCode;
+import com.admin.common.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -44,11 +47,15 @@ public class AuthService {
         User user = userMapper.selectOne(wrapper);
 
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 简化处理：这里应该使用BCrypt验证密码，但为了简单，我们暂时跳过
-        // 实际应该：BCrypt.checkpw(request.getPassword(), user.getPassword())
+
+        // 验证密码
+        String encodedPassword = Md5Util.encrypt(request.getPassword());
+        if (!user.getPassword().equals(encodedPassword)) {
+            throw new BusinessException(ErrorCode.PASSWORD_ERROR);
+        }
 
         // 查询用户的所有角色
         List<Role> roles = getUserRoles(user.getId());
@@ -80,7 +87,7 @@ public class AuthService {
         User user = userMapper.selectById(userId);
 
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
         // 查询用户的所有角色
