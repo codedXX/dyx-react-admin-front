@@ -6,6 +6,7 @@ import com.admin.entity.UserRole;
 import com.admin.mapper.RoleMapper;
 import com.admin.mapper.UserMapper;
 import com.admin.mapper.UserRoleMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -31,6 +32,9 @@ public class UserService {
     @Autowired
     private UserRoleMapper userRoleMapper;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     /**
      * 获取用户列表
      */
@@ -44,7 +48,7 @@ public class UserService {
                     .like("email", keyword);
         }
 
-        wrapper.orderByDesc("create_time");
+        wrapper.orderByAsc("create_time");
 
         IPage<User> userPage = userMapper.selectPage(pageParam, wrapper);
 
@@ -101,6 +105,11 @@ public class UserService {
             user.setAvatar("https://api.dicebear.com/7.x/avataaars/svg?seed=" + user.getUsername());
         }
 
+        // 密码加密
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
         int rows = userMapper.insert(user);
 
         // 保存角色关联
@@ -116,6 +125,11 @@ public class UserService {
      */
     @Transactional
     public boolean updateUser(User user) {
+        // 密码加密
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
         int rows = userMapper.updateById(user);
 
         // 更新角色关联

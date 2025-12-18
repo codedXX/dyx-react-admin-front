@@ -8,7 +8,7 @@ import com.admin.entity.UserRole;
 import com.admin.mapper.RoleMapper;
 import com.admin.mapper.UserMapper;
 import com.admin.mapper.UserRoleMapper;
-import com.admin.util.Md5Util;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import com.admin.util.JwtUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.admin.common.enums.ErrorCode;
@@ -35,6 +35,9 @@ public class AuthService {
     private UserRoleMapper userRoleMapper;
 
     @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     /**
@@ -52,8 +55,7 @@ public class AuthService {
 
 
         // 验证密码
-        String encodedPassword = Md5Util.encrypt(request.getPassword());
-        if (!user.getPassword().equals(encodedPassword)) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.PASSWORD_ERROR);
         }
 
