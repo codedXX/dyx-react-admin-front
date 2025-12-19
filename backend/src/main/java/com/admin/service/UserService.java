@@ -128,6 +128,10 @@ public class UserService {
         // 密码加密
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }else{
+            // 如果密码是 null 或者空字符串 ""，则设为 null
+            // MyBatis-Plus 的 updateById 默认会自动忽略 null 字段，从而实现不更新密码
+            user.setPassword(null);
         }
 
         int rows = userMapper.updateById(user);

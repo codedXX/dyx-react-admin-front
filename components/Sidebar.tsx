@@ -32,7 +32,7 @@ const SidebarItem: React.FC<{ item: MenuItem; collapsed: boolean }> = ({
           flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group relative overflow-hidden
           ${
             isActive
-              ? "bg-primary-50 text-primary-600 font-medium shadow-sm shadow-primary-100"
+              ? "bg-primary-50 text-primary-600 font-medium shadow-primary-100"
               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           }
         `}

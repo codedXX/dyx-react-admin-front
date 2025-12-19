@@ -88,6 +88,7 @@ const UserManagement: React.FC = () => {
       const roleIds = user.roles ? user.roles.map((r: any) => r.id) : [];
       form.setFieldsValue({
         ...user,
+        password: "",
         roleIds: roleIds,
       });
     } else {
@@ -265,7 +266,7 @@ const UserManagement: React.FC = () => {
           </Form.Item>
           <Form.Item
             name="password"
-            label="密码"
+            label={modalMode === "create" ? "密码" : "新密码"}
             rules={[
               { required: modalMode === "create", message: "请输入密码" },
             ]}
