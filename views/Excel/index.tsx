@@ -18,7 +18,7 @@ const ExcelPage: React.FC = () => {
     beforeUpload: async (file) => {
       setUploading(true);
       try {
-        const response: any = await excelApi.import(file);
+        const response = await excelApi.import(file);
 
         if (response.code === 200) {
           setHeaders(response.data.headers);

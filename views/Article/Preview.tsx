@@ -10,11 +10,7 @@ interface TocItem {
   level: number;
 }
 
-interface Article {
-  id: number;
-  title: string;
-  content: string;
-}
+import { Article } from "@/types";
 
 import { useLocation } from "react-router-dom";
 
@@ -33,13 +29,14 @@ const Preview: React.FC = () => {
   const loadArticles = async () => {
     setLoading(true);
     try {
-      const response: any = await articleApi.getList(0, 10);
-      if (response.code === 200 && response.data.length > 0) {
-        setArticles(response.data);
+      const response = await articleApi.getList(0, 10);
+      if (response.code === 200 && response.data.records.length > 0) {
+        setArticles(response.data.records);
         // 如果当前没有选中文章，或者列表更新了，默认显示第一篇
         // 这里简单处理：总是显示第一篇，或者保持当前选中的（如果还在列表中）
         // 为了响应“刷新页面”，我们默认重置为第一篇，或者根据URL参数（如果有）
-        setCurrentArticle(response.data[0]);
+        // 默认重置为第一篇
+        setCurrentArticle(response.data.records[0]);
       }
     } catch (error) {
       console.error("加载文章失败", error);
@@ -104,7 +101,12 @@ const Preview: React.FC = () => {
 
   // Custom renderer to add IDs to headings
   const components = {
-    h1: ({ children, ...props }: any) => {
+    h1: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLHeadingElement> & {
+      children?: React.ReactNode;
+    }) => {
       const id = children?.toString().trim();
       return (
         <h1
@@ -116,7 +118,12 @@ const Preview: React.FC = () => {
         </h1>
       );
     },
-    h2: ({ children, ...props }: any) => {
+    h2: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLHeadingElement> & {
+      children?: React.ReactNode;
+    }) => {
       const id = children?.toString().trim();
       return (
         <h2
@@ -128,7 +135,12 @@ const Preview: React.FC = () => {
         </h2>
       );
     },
-    h3: ({ children, ...props }: any) => {
+    h3: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLHeadingElement> & {
+      children?: React.ReactNode;
+    }) => {
       const id = children?.toString().trim();
       return (
         <h3

@@ -15,12 +15,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
-interface IRole {
-  id: number;
-  roleName: string;
-  roleCode: string;
-  description: string;
-}
+import { Role } from "@/types";
 
 interface IMenuNode {
   id: number;
@@ -29,7 +24,7 @@ interface IMenuNode {
 }
 
 const RoleManagement: React.FC = () => {
-  const [roles, setRoles] = useState<IRole[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
@@ -38,7 +33,7 @@ const RoleManagement: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [currentRole, setCurrentRole] = useState<Partial<IRole>>({});
+  const [currentRole, setCurrentRole] = useState<Partial<Role>>({});
   const [form] = Form.useForm();
 
   // Permission Modal State
@@ -50,7 +45,7 @@ const RoleManagement: React.FC = () => {
   const loadRoles = async () => {
     setLoading(true);
     try {
-      const response: any = await roleApi.getAll(page, 10, keyword);
+      const response = await roleApi.getAll(page, 10, keyword);
       if (response.code === 200) {
         setRoles(response.data.records);
         setTotal(response.data.total);
@@ -74,7 +69,7 @@ const RoleManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const response: any = await roleApi.delete(id);
+      const response = await roleApi.delete(id);
       if (response.code === 200) {
         message.success("删除成功");
         loadRoles();
@@ -87,7 +82,7 @@ const RoleManagement: React.FC = () => {
     }
   };
 
-  const openModal = (mode: "create" | "edit", role?: IRole) => {
+  const openModal = (mode: "create" | "edit", role?: Role) => {
     setModalMode(mode);
     if (mode === "edit" && role) {
       setCurrentRole(role);
@@ -106,7 +101,7 @@ const RoleManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      let response: any;
+      let response;
       if (modalMode === "create") {
         response = await roleApi.create(values);
       } else {
@@ -131,12 +126,12 @@ const RoleManagement: React.FC = () => {
     setPermRoleId(roleId);
     try {
       // Load full menu tree
-      const treeRes: any = await menuApi.getTree();
+      const treeRes = await menuApi.getTree();
       if (treeRes.code === 200) {
         setMenuTree(treeRes.data);
       }
       // Load role's current permissions
-      const permRes: any = await roleApi.getMenus(roleId);
+      const permRes = await roleApi.getMenus(roleId);
       if (permRes.code === 200) {
         setCheckedKeys(permRes.data);
       }
@@ -150,7 +145,7 @@ const RoleManagement: React.FC = () => {
   const handlePermSubmit = async () => {
     if (!permRoleId) return;
     try {
-      const response: any = await roleApi.assignMenus(permRoleId, checkedKeys);
+      const response = await roleApi.assignMenus(permRoleId, checkedKeys);
       if (response.code === 200) {
         message.success("权限分配成功");
         setIsPermModalOpen(false);
@@ -173,7 +168,7 @@ const RoleManagement: React.FC = () => {
   };
 
   // 表格列配置
-  const columns: ColumnsType<IRole> = [
+  const columns: ColumnsType<Role> = [
     {
       title: "角色名称",
       dataIndex: "roleName",
@@ -204,7 +199,7 @@ const RoleManagement: React.FC = () => {
       title: "操作",
       key: "action",
       align: "right",
-      render: (_: any, record: IRole) => (
+      render: (_: any, record: Role) => (
         <Space size="small">
           <Button
             type="text"

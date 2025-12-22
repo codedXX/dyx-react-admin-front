@@ -15,14 +15,15 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { User, Role } from "@/types";
 import "./User.scss";
 
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [form] = Form.useForm();
 
   // 分页和搜索状态
@@ -38,12 +39,12 @@ const UserManagement: React.FC = () => {
     setLoading(true);
     try {
       const response = await userApi.getAll(page, size, searchKeyword);
-      if ((response as any).code === 200) {
-        setUsers((response as any).data.records);
+      if (response.code === 200) {
+        setUsers(response.data.records);
         setPagination({
-          current: (response as any).data.current,
-          pageSize: (response as any).data.size,
-          total: (response as any).data.total,
+          current: response.data.current,
+          pageSize: response.data.size,
+          total: response.data.total,
         });
       }
     } catch (error) {
@@ -67,7 +68,7 @@ const UserManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       const response = await userApi.delete(id);
-      if ((response as any).code === 200) {
+      if (response.code === 200) {
         message.success("删除成功");
         fetchUsers(pagination.current, pagination.pageSize, keyword);
       } else {
@@ -79,13 +80,13 @@ const UserManagement: React.FC = () => {
   };
 
   // 打开模态框
-  const openModal = (mode: "create" | "edit", user?: any) => {
+  const openModal = (mode: "create" | "edit", user?: User) => {
     setModalMode(mode);
-    setCurrentUser(user);
+    setCurrentUser(user || null);
     setIsModalOpen(true);
     if (mode === "edit" && user) {
       // 转换角色数据用于回显
-      const roleIds = user.roles ? user.roles.map((r: any) => r.id) : [];
+      const roleIds = user.roles ? user.roles.map((r: Role) => r.id) : [];
       form.setFieldsValue({
         ...user,
         password: "",
@@ -110,15 +111,15 @@ const UserManagement: React.FC = () => {
       if (modalMode === "create") {
         response = await userApi.create(submitData);
       } else {
-        response = await userApi.update(currentUser.id, submitData);
+        response = await userApi.update(currentUser!.id, submitData);
       }
 
-      if ((response as any).code === 200) {
+      if (response.code === 200) {
         message.success(modalMode === "create" ? "新增成功" : "更新成功");
         setIsModalOpen(false);
         fetchUsers(pagination.current, pagination.pageSize, keyword);
       } else {
-        message.error((response as any).message || "操作失败");
+        message.error(response.message || "操作失败");
       }
     } catch (error) {
       console.error("操作失败:", error);
@@ -127,12 +128,12 @@ const UserManagement: React.FC = () => {
   };
 
   // 表格列配置
-  const columns: ColumnsType<any> = [
+  const columns: ColumnsType<User> = [
     {
       title: "用户",
       dataIndex: "username",
       key: "username",
-      render: (text: string, record: any) => (
+      render: (text: string, record: User) => (
         <div className="flex items-center gap-3">
           <img
             src={record.avatar || "https://via.placeholder.com/40"}
@@ -147,9 +148,9 @@ const UserManagement: React.FC = () => {
       title: "角色",
       dataIndex: "roles",
       key: "roles",
-      render: (roles: any[]) => (
+      render: (roles: Role[]) => (
         <Space size={4} wrap>
-          {roles?.map((role: any) => (
+          {roles?.map((role: Role) => (
             <Tag
               key={role.id}
               color={role.roleCode === "ROLE_ADMIN" ? "blue" : "default"}
@@ -176,10 +177,7 @@ const UserManagement: React.FC = () => {
       ),
     },
     {
-      title: "操作",
-      key: "action",
-      align: "right",
-      render: (_: any, record: any) => (
+      render: (_: any, record: User) => (
         <Space size="small">
           <Button
             type="text"

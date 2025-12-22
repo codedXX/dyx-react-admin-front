@@ -16,7 +16,7 @@ const Editor: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response: any = await articleApi.save({
+      const response = await articleApi.save({
         title,
         content,
         authorId: 1, // 简化处理，实际应从登录信息获取

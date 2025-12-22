@@ -22,7 +22,7 @@ const Login: React.FC = () => {
     setError("");
 
     try {
-      const response: any = await authApi.login({
+      const response = await authApi.login({
         username: values.username,
         password: values.password,
       });
@@ -37,6 +37,8 @@ const Login: React.FC = () => {
         setError(response.message || "登录失败");
       }
     } catch (err: any) {
+      // 保持 err: any 以兼容 axios 错误结构，或者使用 unknown + 类型守卫。
+      // 为简单起见，这里先保留 explicit any 但建议改为 AxiosError
       setError(err.response?.data?.message || "登录失败，请检查网络连接");
     } finally {
       setLoading(false);

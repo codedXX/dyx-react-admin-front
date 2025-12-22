@@ -38,7 +38,7 @@ const MenuManagement: React.FC = () => {
 
   const loadMenus = async () => {
     try {
-      const response: any = await menuApi.getTree();
+      const response = await menuApi.getTree();
       if (response.code === 200) {
         setMenus(response.data);
       }
@@ -55,7 +55,7 @@ const MenuManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const response: any = await menuApi.delete(id);
+      const response = await menuApi.delete(id);
       if (response.code === 200) {
         message.success("删除成功");
         loadMenus();
@@ -92,7 +92,7 @@ const MenuManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      let response: any;
+      let response;
       const dataToSubmit = {
         ...values,
         parentId: values.parentId || 0,
@@ -118,8 +118,11 @@ const MenuManagement: React.FC = () => {
   };
 
   // 扁平化菜单数据用于表格展示
-  const flattenMenus = (items: MenuItem[], level = 0): any[] => {
-    return items.reduce((acc: any[], item) => {
+  const flattenMenus = (
+    items: MenuItem[],
+    level = 0
+  ): (MenuItem & { level: number })[] => {
+    return items.reduce((acc: (MenuItem & { level: number })[], item) => {
       acc.push({ ...item, level });
       if (item.children) {
         acc.push(...flattenMenus(item.children, level + 1));
@@ -129,12 +132,12 @@ const MenuManagement: React.FC = () => {
   };
 
   // 表格列配置
-  const columns: ColumnsType<any> = [
+  const columns: ColumnsType<MenuItem & { level: number }> = [
     {
       title: "菜单标题",
       dataIndex: "title",
       key: "title",
-      render: (text: string, record: any) => (
+      render: (text: string, record: MenuItem & { level: number }) => (
         <div
           className="flex items-center gap-2"
           style={{ paddingLeft: `${(record.level || 0) * 24}px` }}
@@ -199,7 +202,7 @@ const MenuManagement: React.FC = () => {
       title: "操作",
       key: "action",
       align: "right",
-      render: (_: any, record: any) => (
+      render: (_: any, record: MenuItem) => (
         <Space size="small">
           <Button
             type="text"
