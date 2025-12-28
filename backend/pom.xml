@@ -85,12 +85,12 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Boot DevTools (开发工具) -->
+        <!-- Spring Boot DevTools 热部署核心依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
-            <optional>true</optional>
+            <optional>true</optional><!-- 避免传递到生产环境 -->
         </dependency>
 
         <!-- Spring Boot Test -->
