@@ -82,9 +82,10 @@ export const useLayoutStore = create<LayoutState>((set) => ({
         set({ menus: response.data });
       }
     } catch (error) {
-      console.error("Failed to fetch menus", error);
+      useAuthStore.getState().logout();
+      console.error("获取菜单失败", error);
     }
-  },
+  }
 }));
 
 interface ThemeState {

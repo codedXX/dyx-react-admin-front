@@ -33,6 +33,7 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       window.location.href = "/#/login";
     }
+    console.log('响应拦截器',error)
     return Promise.reject(error);
   }
 );
