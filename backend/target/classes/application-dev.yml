@@ -8,3 +8,19 @@ spring:
     url: jdbc:mysql://localhost:3306/react_admin?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: root
+  # DevTools 配置
+  devtools:
+    restart:
+      enabled: true  # 开启热重启（默认true，可关闭）
+      exclude: static/**,public/**,templates/**  # 排除静态资源/模板文件（修改这些无需重启）
+      additional-paths: src/main/java  # 监听Java代码目录（默认已包含，可追加）
+    livereload:
+      enabled: true  # 开启页面自动刷新（需浏览器插件配合）
+  # 模板引擎（如Thymeleaf）关闭缓存，修改HTML立即生效
+  thymeleaf:
+    cache: false
+  # 关闭静态资源缓存（CSS/JS/图片）
+  web:
+    resources:
+      cache:
+        period: 0
