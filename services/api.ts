@@ -3,8 +3,8 @@ import { ApiResponse, User, Role, MenuItem, Article } from "../types";
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
-  // baseURL: 'http://8.138.240.173:8080/api',
+  // baseURL: "http://localhost:8080/api",
+  baseURL: 'http://8.138.240.173:8080/api',
   // timeout: 10000,
 });
 
