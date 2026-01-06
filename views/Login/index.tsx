@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store";
@@ -10,9 +10,14 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  console.log('isAuthenticated初始',isAuthenticated)
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
+useEffect(() => { 
+  console.log('isAuthenticated',isAuthenticated)
+}, [isAuthenticated]);
   const handleLogin = async (values: {
     username: string;
     password: string;
