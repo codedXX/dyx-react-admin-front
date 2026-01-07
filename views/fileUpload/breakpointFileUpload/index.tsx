@@ -89,6 +89,7 @@ export default () => {
         console.log("chunksId", chunksId);
         chunkIndex++;
         spark.append(e.target.result);
+        // new Blob([e.target.result]
         if (chunkIndex < chunks.length) {
           loadNext(file);
         } else {
