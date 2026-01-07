@@ -68,7 +68,7 @@ export default () => {
           let fd = new FormData();
           fd.append("type", "merge");
           fd.append("token", token);
-          fd.append("chunkCount", totalSize.toString());
+          fd.append("chunkCount", chunks.length.toString());
           fd.append("filename", file.name);
           axios.post("http://localhost:8100/", fd).then((res) => {});
         }
