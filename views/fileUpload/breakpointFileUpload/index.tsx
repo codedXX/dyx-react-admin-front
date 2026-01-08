@@ -74,6 +74,7 @@ export default () => {
   const chunkSize = 2 * 1024 * 1024; //2MB
   let end = 0;
   let fileReader = null;
+  let chunksList = [];
   const splitFile = async (file: File, chunks: Blob[]) => {
     console.log("file", file);
     console.log("chunksaaa", chunks);
@@ -85,10 +86,13 @@ export default () => {
       fileReader.onload = (e) => {
         start = end;
         console.log("e", e);
-        let chunksId = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex;
-        console.log("chunksId", chunksId);
+        let chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex;
         chunkIndex++;
         spark.append(e.target.result);
+        chunksList.push({
+          id: chunkMD5,
+          content: new Blob([e.target.result]),
+        });
         // new Blob([e.target.result]
         if (chunkIndex < chunks.length) {
           loadNext(file);
@@ -98,7 +102,7 @@ export default () => {
           resolve({
             fileId,
             ext: file.name.split(".").slice(-1)[0],
-            chunks,
+            chunks: chunksList,
           });
         }
       };
@@ -120,7 +124,11 @@ export default () => {
    * 传递SparkMd5加密数组
    */
   const handleShake = (fileInfo) => {
-    axios.post("http://localhost:8101/api/upload/handshake", fileInfo);
+    let params = {
+      ...fileInfo,
+      chunks: fileInfo.chunks.map((item) => item.id),
+    };
+    axios.post("http://localhost:8101/api/upload/handshake", params);
   };
 
   return (
