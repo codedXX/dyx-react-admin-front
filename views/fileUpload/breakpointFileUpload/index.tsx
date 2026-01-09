@@ -1,8 +1,8 @@
-import { UploadOutlined } from "@ant-design/icons";
-import { Button, message, Upload } from "antd";
-import SparkMD5 from "spark-md5";
-import axios from "axios";
-import { rejects } from "assert";
+import { UploadOutlined } from '@ant-design/icons'
+import { Button, message, Upload } from 'antd'
+import SparkMD5 from 'spark-md5'
+import axios from 'axios'
+import { rejects } from 'assert'
 export default () => {
   /**
    * 需要注意的是:
@@ -12,24 +12,24 @@ export default () => {
 
   const submitUpload = async (file: File) => {
     return new Promise((resolve, reject) => {
-      let chunks = [];
-      const chunkSize = 2 * 1024 * 1024; //2MB
-      let start = 0;
-      let token = new Date().getTime().toString();
-      const totalSize = file.size;
+      let chunks = []
+      const chunkSize = 2 * 1024 * 1024 //2MB
+      let start = 0
+      let token = new Date().getTime().toString()
+      const totalSize = file.size
       if (totalSize > chunkSize) {
         while (start < totalSize) {
           // 优化：用 Math.min 确保结束位置不超过文件总大小，避免切割出空片段
-          const end = Math.min(start + chunkSize, totalSize);
-          let sliceFile = file.slice(start, end);
-          chunks.push(sliceFile);
-          start += chunkSize;
+          const end = Math.min(start + chunkSize, totalSize)
+          let sliceFile = file.slice(start, end)
+          chunks.push(sliceFile)
+          start += chunkSize
         }
       } else {
-        chunks.push(file.slice(0));
+        chunks.push(file.slice(0))
       }
-      resolve(chunks);
-    });
+      resolve(chunks)
+    })
     /** 
     let sendChunkCount = 0;
     for (let i = 0; i < chunks.length; i++) {
@@ -52,84 +52,111 @@ export default () => {
       });
     }
       */
-  };
+  }
 
   //   const sendFile()=>{
 
   //   }
 
-  const customUpload = async (options) => {
-    let chunks = (await submitUpload(options.file)) as Blob[];
-    let fileInfo = await splitFile(options.file, chunks);
-    let handleShakeRes = handleShake(fileInfo);
+  let needs
+  const customUpload = async options => {
+    let chunks = (await submitUpload(options.file)) as Blob[]
+    let fileInfo = await splitFile(options.file, chunks)
+    const { data } = await handleShake(fileInfo)
+    needs = data.data
+    // debugger
+    sliceUpload()
 
     // submitUpload(options.file);
-  };
+  }
 
   /**
    * 文件分片
    * @param file
    */
-  let start = 0;
-  const chunkSize = 2 * 1024 * 1024; //2MB
-  let end = 0;
-  let fileReader = null;
-  let chunksList = [];
+  let start = 0
+  const chunkSize = 2 * 1024 * 1024 //2MB
+  let end = 0
+  let fileReader = null
+  let chunksList = []
+  let fileId
   const splitFile = async (file: File, chunks: Blob[]) => {
-    console.log("file", file);
-    console.log("chunksaaa", chunks);
-    let chunkIndex = 0;
+    console.log('file', file)
+    console.log('chunksaaa', chunks)
+    let chunkIndex = 0
     return new Promise((resolve, reject) => {
       //使用ArrayBuffer完成文件MD5编码
-      const spark = new SparkMD5.ArrayBuffer();
-      fileReader = new FileReader(); //文件读取器
-      fileReader.onload = (e) => {
-        start = end;
-        console.log("e", e);
-        let chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex;
-        chunkIndex++;
-        spark.append(e.target.result);
+      const spark = new SparkMD5.ArrayBuffer()
+      fileReader = new FileReader() //文件读取器
+      fileReader.onload = e => {
+        start = end
+        console.log('e', e)
+        let chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex
+        chunkIndex++
+        spark.append(e.target.result)
         chunksList.push({
           id: chunkMD5,
-          content: new Blob([e.target.result]),
-        });
+          content: new Blob([e.target.result])
+        })
         // new Blob([e.target.result]
         if (chunkIndex < chunks.length) {
-          loadNext(file);
+          loadNext(file)
         } else {
-          const fileId = spark.end();
-          console.log("fileId", fileId);
+          fileId = spark.end()
+          console.log('fileId', fileId)
           resolve({
             fileId,
-            ext: file.name.split(".").slice(-1)[0],
-            chunks: chunksList,
-          });
+            ext: file.name.split('.').slice(-1)[0],
+            chunks: chunksList
+          })
         }
-      };
-      loadNext(file);
+      }
+      loadNext(file)
       //   for (let i = 0; i < chunks.length; i++) {
       //     spark.append("")
       //   }
-    });
-  };
+    })
+  }
   /**
    * 读取下一个分片
    */
   const loadNext = (file: File) => {
-    end = start + chunkSize;
-    fileReader.readAsArrayBuffer(file.slice(start, end));
-  };
+    end = start + chunkSize
+    fileReader.readAsArrayBuffer(file.slice(start, end))
+  }
 
   /**
    * 传递SparkMd5加密数组
    */
-  const handleShake = (fileInfo) => {
-    let params = {
-      ...fileInfo,
-      chunks: fileInfo.chunks.map((item) => item.id),
-    };
-    axios.post("http://localhost:8101/api/upload/handshake", params);
-  };
+  const handleShake = async fileInfo => {
+    try {
+      let params = {
+        ...fileInfo,
+        chunkIds: fileInfo.chunks.map(item => item.id)
+      }
+      delete params.chunks
+      let res = await axios.post('http://localhost:8101/api/upload/handshake', params)
+      return res //// async 函数会自动将返回值包装成 Promise.resolve
+    } catch (err) {
+      throw err // async 函数中抛出错误会被包装成 Promise.reject
+    }
+  }
+
+  /**
+   * 分片上传
+   */
+  const sliceUpload = async () => {
+    if (needs.length == 0) return
+    const chunkId = needs[0]
+    let fd = new FormData()
+    fd.append('file', chunksList.find(item => item.id == chunkId).content)
+    fd.append('chunkId', chunkId)
+    fd.append('fileId', fileId)
+    let res = await axios.post('http://localhost:8101/api/upload/', fd)
+    console.log('res', res)
+    needs = res.data
+    sliceUpload()
+  }
 
   return (
     <div>
@@ -138,5 +165,5 @@ export default () => {
         <Button icon={<UploadOutlined />}>上传</Button>
       </Upload>
     </div>
-  );
-};
+  )
+}

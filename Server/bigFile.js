@@ -1,21 +1,21 @@
-import express from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import cors from "cors";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import express from 'express'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+import cors from 'cors'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
 
 // recreate __dirname for ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
-const app = express();
-const port = 8100;
+const app = express()
+const port = 8100
 //跨域
-app.use(cors());
-const uploadDir = path.resolve(__dirname, "./uploads");
-const uploadHost = `http://localhost:${port}/uploads/`;
+app.use(cors())
+const uploadDir = path.resolve(__dirname, './uploads')
+const uploadHost = `http://localhost:${port}/uploads/`
 //确保目录存在
 /**
 当配置 { recursive: true } 时，fs.mkdirSync 会自动处理父目录不存在的情况：
@@ -24,7 +24,7 @@ const uploadHost = `http://localhost:${port}/uploads/`;
 3.最后创建目标目录（如果目标目录已存在，不会报错，也不会覆盖已有目录内容）。
  */
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true })
 }
 
 /**
@@ -51,7 +51,7 @@ const storage = multer.diskStorage({
    * 等价于：把文件存到 uploadDir 文件夹
    */
   destination(req, file, cb) {
-    cb(null, uploadDir);
+    cb(null, uploadDir)
   },
   /**
    * 决定文件在磁盘上的文件名
@@ -63,13 +63,13 @@ const storage = multer.diskStorage({
    */
   filename(req, file, cb) {
     // 临时文件名
-    cb(null, Date.now() + "-" + Math.random());
-  },
-});
+    cb(null, Date.now() + '-' + Math.random())
+  }
+})
 
-const upload = multer({ storage });
+const upload = multer({ storage })
 //👉 把服务器上的 uploadDir 文件夹，映射成一个可以通过 /uploads 这个 URL 访问的静态目录
-app.use("/uploads", express.static(uploadDir));
+app.use('/uploads', express.static(uploadDir))
 
 // 接收 multipart/form-data
 /**
@@ -92,21 +92,21 @@ app.use("/uploads", express.static(uploadDir));
 所以 multer 的设计原则：
 文件不经过 req.body，直接写入磁盘或内存流
  */
-app.post("/", upload.single("f1"), (req, res) => {
-  const body = req.body;
-  const file = req.file;
+app.post('/', upload.single('f1'), (req, res) => {
+  const body = req.body
+  const file = req.file
   // console.log("body", body);
   // console.log("file", file);
 
-  const token = body.token;
-  const index = body.index;
+  const token = body.token
+  const index = body.index
 
   // ============ 普通分片上传 ============
   if (file) {
-    const oldPath = file.path;
-    const newFilename = `${index}-${token}`;
-    console.log("newFilename", newFilename);
-    const newPath = path.join(uploadDir, newFilename);
+    const oldPath = file.path
+    const newFilename = `${index}-${token}`
+    console.log('newFilename', newFilename)
+    const newPath = path.join(uploadDir, newFilename)
     /**
      * fs.renameSync(oldPath, newPath);
           把 multer 临时文件改成正式名字
@@ -115,24 +115,24 @@ app.post("/", upload.single("f1"), (req, res) => {
           后面 merge 时按序号拼接
           renameSync 是同步操作，保证改名完成再继续
      */
-    fs.renameSync(oldPath, newPath);
+    fs.renameSync(oldPath, newPath)
     return res.json({
-      fileUrl: [uploadHost + newFilename],
-    });
+      fileUrl: [uploadHost + newFilename]
+    })
   }
   // ============ 合并请求 ============
-  if (body.type === "merge") {
-    const filename = body.filename;
-    const chunkCount = Number(body.chunkCount);
+  if (body.type === 'merge') {
+    const filename = body.filename
+    const chunkCount = Number(body.chunkCount)
 
-    const finalPath = path.join(uploadDir, filename);
-    const writeStream = fs.createWriteStream(finalPath);
+    const finalPath = path.join(uploadDir, filename)
+    const writeStream = fs.createWriteStream(finalPath)
 
-    let currentIndex = 0;
+    let currentIndex = 0
 
     function mergeChunk() {
-      const chunkPath = path.join(uploadDir, `${currentIndex}-${token}`);
-      const readStream = fs.createReadStream(chunkPath);
+      const chunkPath = path.join(uploadDir, `${currentIndex}-${token}`)
+      const readStream = fs.createReadStream(chunkPath)
       /**
        * readStream.pipe(writeStream)
        意思是：
@@ -151,7 +151,7 @@ app.post("/", upload.single("f1"), (req, res) => {
        * 1.当前分片写完了，但最终文件还没写完，先别关
        * 2.只有 最后一个分片 才能关。
        */
-      readStream.pipe(writeStream, { end: false });
+      readStream.pipe(writeStream, { end: false })
       /**
        * readStream.on('end', () => {
        * });
@@ -165,26 +165,26 @@ app.post("/", upload.single("f1"), (req, res) => {
        * ✅ 当前分片 → 已经完整写进最终文件
        * ✅ 可以安全进行下一步操作
        */
-      readStream.on("end", () => {
+      readStream.on('end', () => {
         //fs.unlinkSync(chunkPath)是 Node.js 文件系统（fs 模块）提供的同步删除文件的方法
         // fs.unlinkSync(chunkPath);
-        currentIndex++;
+        currentIndex++
         if (currentIndex < chunkCount) {
-          mergeChunk();
+          mergeChunk()
         } else {
           /**
            * 通过writeStream.end()手动关闭最终文件
            */
-          writeStream.end();
-          res.send("merge ok 200");
+          writeStream.end()
+          res.send('merge ok 200')
         }
-      });
+      })
     }
-    mergeChunk();
+    mergeChunk()
   }
-});
+})
 
 // 启动服务
 app.listen(port, () => {
-  console.log("express upload server start on " + port);
-});
+  console.log('express upload server start on ' + port)
+})
