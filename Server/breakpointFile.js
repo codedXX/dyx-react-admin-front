@@ -15,7 +15,16 @@ const CHUNK_DIR = path.join(__dirname, './chunktemp') // 分片临时存储目�
 const FILE_INFO_DIR = path.join(__dirname, './filetemp') // 文件上传进度信息目录
 const TEST_FILE_INFO_DIR = path.join(__dirname, './test')
 const FILE_DIR = path.join(__dirname, './file') // 最终合并文件存储目录
-const FIELD_NAME = 'file' // 上传文件的表单字段名
+const FIELD_NAME = 'file'
+
+const dirs = [CHUNK_DIR, FILE_INFO_DIR, TEST_FILE_INFO_DIR, FILE_DIR]
+dirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+    console.log(`📁 已创建目录: ${dir}`)
+  }
+})
+
 //跨域
 app.use(cors())
 // 关键：添加 JSON 解析中间件（必须放在所有接口定义之前）
@@ -59,7 +68,7 @@ const upload = multer({ storage })
 const exists = async filePath => {
   try {
     await fs.promises.stat(filePath) //尝试获取文件状态
-    return true //成功泽文件存在
+    return true //成功则文件存在
   } catch {
     return false //失败则文件不存在
   }
@@ -67,7 +76,9 @@ const exists = async filePath => {
 
 const getFileInfo = async fileId => {
   const infoPath = path.join(FILE_INFO_DIR, fileId) //构建信息文件路径
-  if (!(await exists(infoPath))) return null
+  const result = await exists(infoPath)
+  // if (!(await exists(infoPath))) return null
+  if (!result) return null
 
   const json = await fs.promises.readFile(infoPath, 'utf-8') //读取JSON文件内容
   return JSON.parse(json) //解析并返回对象
@@ -93,14 +104,14 @@ const saveFileInfo = async (fileId, ext, chunkIds, needs = chunkIds) => {
  * @param {object} file - multer 上传的文件对象
  * @returns {Promise<void>}
  */
-const deleteChunk = async file => {
-  if (!file || !file.path) return
+const deleteChunk = async path => {
+  if (!path) return
   try {
     // 异步删除文件
-    await fs.promises.unlink(file.path)
-    console.log(`已删除临时分片: ${file.path}`)
+    await fs.promises.unlink(path)
+    console.log(`已删除临时分片: ${path}`)
   } catch (err) {
-    console.error(`删除分片失败: ${file.path}`, err)
+    console.error(`删除分片失败: ${path}`, err)
   }
 }
 
@@ -145,24 +156,31 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
   // 参数校验
   if (!file) return res.send({ code: 403, msg: '请携带分片文件', data: null })
-  if (!chunkId) return (deleteChunk(file.path), res.send({ code: 403, msg: '请携带分片编号', data: null }))
-  if (!fileId) return (deleteChunk(file.path), res.send({ code: 403, msg: '请携带文件编号', data: null }))
+  if (!chunkId) {
+    await deleteChunk(file.path)
+    return res.send({ code: 403, msg: '请携带分片编号', data: null })
+  }
+  if (!fileId) {
+    await deleteChunk(file.path)
+    return res.send({ code: 403, msg: '请携带文件编号', data: null })
+  }
 
   try {
     // 检查是否有上传记录（断点续传）
-    const fileInfo = getFileInfo(fileId)
+    const fileInfo = await getFileInfo(fileId)
+    console.log('fileInfo', fileInfo)
     if (!fileInfo) {
-      deleteChunk(file.path)
+      await deleteChunk(file.path)
       throw new Error('请先调用握手接口提交文件分片信息')
     }
     // 验证该分片是否属于此文件
     if (!fileInfo.chunkIds.includes(chunkId)) {
-      deleteChunk(file.path)
+      await deleteChunk(file.path)
       throw new Error('该文件没有此分片信息')
     }
     // 检查该分片是否已上传
     if (!fileInfo.needs.includes(chunkId)) {
-      deleteChunk(file.path)
+      await deleteChunk(file.path)
       // 分片已上传，直接返回剩余需要的分片
       return res.send({ code: 0, msg: '该分片已上传', data: fileInfo.needs })
     }
@@ -178,14 +196,17 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // console.log('newFilename', newFilename)
     const newPath = path.join(CHUNK_DIR, newFilename)
     /**
-         * fs.renameSync(oldPath, newPath);
-              把 multer 临时文件改成正式名字
-              为什么要改？
-              保证每片文件不会冲突
-              后面 merge 时按序号拼接
-              renameSync 是同步操作，保证改名完成再继续
-         */
-    fs.renameSync(oldPath, newPath)
+     * fs.renameSync(oldPath, newPath);
+     把 multer 临时文件改成正式名字
+     为什么要改？
+     保证每片文件不会冲突
+     后面 merge 时按序号拼接
+     renameSync 是同步操作，保证改名完成再继续
+     */
+    // fs.renameSync(oldPath, newPath)
+    if (!fs.existsSync(newPath)) {
+      fs.renameSync(oldPath, newPath)
+    }
 
     // 更新文件信息，移除已上传的分片 ID
     fileInfo.needs = fileInfo.needs.filter(id => id !== chunkId)
@@ -198,10 +219,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.send({ code: 0, msg: '上传完成', data: [] })
     }
 
+    console.log('你好啊')
     // 返回还需要上传的分片列表
-    res.send({ code: 0, msg: '分片上传成功', data: fileInfo.needs })
+    return res.send({ code: 0, msg: '分片上传成功', data: fileInfo.needs })
   } catch (err) {
-    res.send({ code: 403, msg: err.message, data: null })
+    return res.send({ code: 403, msg: err.message, data: null })
   }
 })
 
