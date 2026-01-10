@@ -1,170 +1,288 @@
 import { UploadOutlined } from '@ant-design/icons'
-import { Button, message, Upload } from 'antd'
-import SparkMD5 from 'spark-md5'
+import { Button, message, Upload, Progress, Card, Typography } from 'antd'
 import axios from 'axios'
-import { rejects } from 'assert'
+import { useState, useRef, useCallback, useEffect } from 'react'
+
+const { Text } = Typography
+
+// 分片大小：2MB
+const CHUNK_SIZE = 2 * 1024 * 1024
+
+// API 地址
+const API_BASE = 'http://localhost:8101'
+
+// Worker 消息类型
+interface ProgressMessage {
+  type: 'progress'
+  percent: number
+  currentChunk: number
+  totalChunks: number
+}
+
+interface CompleteMessage {
+  type: 'complete'
+  fileId: string
+  chunks: Array<{ id: string; content: ArrayBuffer }>
+}
+
+interface ErrorMessage {
+  type: 'error'
+  message: string
+}
+
+type WorkerMessage = ProgressMessage | CompleteMessage | ErrorMessage
+
 export default () => {
-  /**
-   * 需要注意的是:
-   * 1.info.file 是 Ant Design Upload 组件封装后的文件对象（包含 uid、name、status 等额外属性），并非浏览器原生的 File 对象，因此它没有 slice 方法。
-   * 2.可以使用info.file.originFileObj，info.file.originFileObj的Prototype是File，但info.file的Prototype是Object
-   */
+  // 状态管理
+  const [hashProgress, setHashProgress] = useState(0) // MD5 计算进度
+  const [uploadProgress, setUploadProgress] = useState(0) // 上传进度
+  const [status, setStatus] = useState<'idle' | 'hashing' | 'uploading' | 'success' | 'error'>('idle')
+  const [statusText, setStatusText] = useState('')
 
-  const submitUpload = async (file: File) => {
-    return new Promise((resolve, reject) => {
-      let chunks = []
-      const chunkSize = 2 * 1024 * 1024 //2MB
-      let start = 0
-      let token = new Date().getTime().toString()
-      const totalSize = file.size
-      if (totalSize > chunkSize) {
-        while (start < totalSize) {
-          // 优化：用 Math.min 确保结束位置不超过文件总大小，避免切割出空片段
-          const end = Math.min(start + chunkSize, totalSize)
-          let sliceFile = file.slice(start, end)
-          chunks.push(sliceFile)
-          start += chunkSize
-        }
-      } else {
-        chunks.push(file.slice(0))
+  // 使用 ref 存储上传相关数据
+  const workerRef = useRef<Worker | null>(null)
+  const chunksRef = useRef<Array<{ id: string; content: ArrayBuffer }>>([])
+  const fileIdRef = useRef<string>('')
+  const needsRef = useRef<string[]>([])
+  const fileExtRef = useRef<string>('')
+
+  // 组件卸载时清理 Worker
+  useEffect(() => {
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate()
       }
-      resolve(chunks)
-    })
-    /**
-     let sendChunkCount = 0;
-     for (let i = 0; i < chunks.length; i++) {
-     let fd = new FormData();
-     fd.append("token", token);
-     fd.append("f1", chunks[i]);
-     fd.append("index", i.toString());
-     axios.post("http://localhost:8101/", fd).then((res) => {
-     sendChunkCount += 1;
-     console.log("sendChunkCount", sendChunkCount);
-     if (sendChunkCount == chunks.length) {
-     console.log("上传完成，发送合并请求");
-     let fd = new FormData();
-     fd.append("type", "merge");
-     fd.append("token", token);
-     fd.append("chunkCount", totalSize.toString());
-     fd.append("filename", file.name);
-     axios.post("http://localhost:8100/", fd).then((res) => {});
-     }
-     });
-     }
-     */
-  }
-
-  //   const sendFile()=>{
-
-  //   }
-
-  let needs
-  const customUpload = async options => {
-    // console.log('file',file)
-    let chunks = (await submitUpload(options.file)) as Blob[]
-    let fileInfo = await splitFile(options.file, chunks)
-    const { data } = await handleShake(fileInfo)
-    needs = data.data
-    // debugger
-    sliceUpload()
-
-    // submitUpload(options.file);
-  }
+    }
+  }, [])
 
   /**
-   * 文件分片
-   * @param file
+   * 使用 Web Worker 计算文件分片和 MD5
    */
-  let start = 0
-  const chunkSize = 2 * 1024 * 1024 //2MB
-  let end = 0
-  let fileReader = null
-  let chunksList = []
-  let fileId
-  const splitFile = async (file: File, chunks: Blob[]) => {
-    console.log('file', file)
-    console.log('chunksaaa', chunks)
-    let chunkIndex = 0
-    return new Promise((resolve, reject) => {
-      //使用ArrayBuffer完成文件MD5编码
-      const spark = new SparkMD5.ArrayBuffer()
-      fileReader = new FileReader() //文件读取器
-      fileReader.onload = e => {
-        start = end
-        console.log('e', e)
-        let chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex
-        chunkIndex++
-        spark.append(e.target.result)
-        chunksList.push({
-          id: chunkMD5,
-          content: new Blob([e.target.result])
+  const calculateHash = useCallback(
+    (file: File): Promise<{ fileId: string; chunks: Array<{ id: string; content: ArrayBuffer }> }> => {
+      return new Promise((resolve, reject) => {
+        // 创建 Worker
+        const worker = new Worker(new URL('./hash.worker.ts', import.meta.url), { type: 'module' })
+        workerRef.current = worker
+
+        worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
+          const { type } = e.data
+
+          if (type === 'progress') {
+            const { percent, currentChunk, totalChunks } = e.data as ProgressMessage
+            setHashProgress(percent)
+            setStatusText(`正在计算 MD5：${currentChunk}/${totalChunks} 分片`)
+          } else if (type === 'complete') {
+            const { fileId, chunks } = e.data as CompleteMessage
+            worker.terminate()
+            workerRef.current = null
+            resolve({ fileId, chunks })
+          } else if (type === 'error') {
+            const { message: errorMsg } = e.data as ErrorMessage
+            worker.terminate()
+            workerRef.current = null
+            reject(new Error(errorMsg))
+          }
+        }
+
+        worker.onerror = err => {
+          worker.terminate()
+          workerRef.current = null
+          reject(new Error(err.message))
+        }
+
+        // 发送计算任务
+        worker.postMessage({
+          type: 'start',
+          file,
+          chunkSize: CHUNK_SIZE
         })
-        // new Blob([e.target.result]
-        if (chunkIndex < chunks.length) {
-          loadNext(file)
-        } else {
-          fileId = spark.end()
-          console.log('fileId', fileId)
-          resolve({
-            fileId,
-            ext: file.name.split('.').slice(-1)[0],
-            chunks: chunksList
-          })
-        }
-      }
-      loadNext(file)
-      //   for (let i = 0; i < chunks.length; i++) {
-      //     spark.append("")
-      //   }
-    })
-  }
+      })
+    },
+    []
+  )
+
   /**
-   * 读取下一个分片
+   * 握手接口 - 获取需要上传的分片列表
    */
-  const loadNext = (file: File) => {
-    end = start + chunkSize
-    fileReader.readAsArrayBuffer(file.slice(start, end))
+  const handleShake = async (fileId: string, ext: string, chunkIds: string[]) => {
+    const res = await axios.post(`${API_BASE}/api/upload/handshake`, {
+      fileId,
+      ext,
+      chunkIds
+    })
+    return res.data
   }
 
   /**
-   * 传递SparkMd5加密数组
+   * 上传单个分片
    */
-  const handleShake = async fileInfo => {
+  const uploadChunk = async (chunkId: string, content: ArrayBuffer, fileId: string) => {
+    const fd = new FormData()
+    fd.append('file', new Blob([content]))
+    fd.append('chunkId', chunkId)
+    fd.append('fileId', fileId)
+
+    const res = await axios.post(`${API_BASE}/api/upload/`, fd)
+    return res.data
+  }
+
+  /**
+   * 递归上传所有分片
+   */
+  const uploadAllChunks = async () => {
+    const needs = needsRef.current
+    const chunks = chunksRef.current
+    const fileId = fileIdRef.current
+    const totalChunks = chunks.length
+
+    if (needs.length === 0) {
+      setUploadProgress(100)
+      setStatus('success')
+      setStatusText('上传完成！')
+      message.success('文件上传成功！')
+      return
+    }
+
+    const chunkId = needs[0]
+    const chunk = chunks.find(c => c.id === chunkId)
+
+    if (!chunk) {
+      throw new Error(`找不到分片: ${chunkId}`)
+    }
+
     try {
-      let params = {
-        ...fileInfo,
-        chunkIds: fileInfo.chunks.map(item => item.id)
+      const result = await uploadChunk(chunkId, chunk.content, fileId)
+
+      if (result.code === 0) {
+        needsRef.current = result.data
+        const uploaded = totalChunks - result.data.length
+        setUploadProgress(Math.round((uploaded / totalChunks) * 100))
+        setStatusText(`正在上传：${uploaded}/${totalChunks} 分片`)
+
+        // 递归上传下一个分片
+        await uploadAllChunks()
+      } else {
+        throw new Error(result.msg)
       }
-      delete params.chunks
-      let res = await axios.post('http://localhost:8101/api/upload/handshake', params)
-      return res //// async 函数会自动将返回值包装成 Promise.resolve
     } catch (err) {
-      throw err // async 函数中抛出错误会被包装成 Promise.reject
+      throw err
     }
   }
 
   /**
-   * 分片上传
+   * 自定义上传处理
    */
-  const sliceUpload = async () => {
-    if (needs.length == 0) return
-    const chunkId = needs[0]
-    let fd = new FormData()
-    fd.append('file', chunksList.find(item => item.id == chunkId).content)
-    fd.append('chunkId', chunkId)
-    fd.append('fileId', fileId)
-    let res = await axios.post('http://localhost:8101/api/upload/', fd)
-    console.log('res', res)
-    needs = res.data.data
-    sliceUpload()
+  const customUpload = async (options: any) => {
+    const file = options.file as File
+
+    try {
+      // 重置状态
+      setStatus('hashing')
+      setHashProgress(0)
+      setUploadProgress(0)
+      setStatusText('开始计算文件 MD5...')
+
+      // 1. 使用 Worker 计算 MD5
+      const { fileId, chunks } = await calculateHash(file)
+
+      // 保存数据到 ref
+      chunksRef.current = chunks
+      fileIdRef.current = fileId
+      fileExtRef.current = '.' + file.name.split('.').pop()
+
+      console.log('文件 MD5:', fileId)
+      console.log('分片数量:', chunks.length)
+
+      // 2. 握手 - 获取需要上传的分片
+      setStatus('uploading')
+      setStatusText('正在与服务器握手...')
+
+      const handshakeResult = await handleShake(
+        fileId,
+        fileExtRef.current,
+        chunks.map(c => c.id)
+      )
+
+      if (handshakeResult.code !== 0 && handshakeResult.msg !== '开始上传' && handshakeResult.msg !== '继续上传') {
+        // 秒传成功
+        if (handshakeResult.msg === '秒传成功') {
+          setStatus('success')
+          setUploadProgress(100)
+          setStatusText('秒传成功！')
+          message.success('文件秒传成功！')
+          options.onSuccess && options.onSuccess(handshakeResult, file)
+          return
+        }
+      }
+
+      needsRef.current = handshakeResult.data
+
+      // 3. 上传分片
+      if (needsRef.current.length === 0) {
+        // 所有分片已上传
+        setStatus('success')
+        setUploadProgress(100)
+        setStatusText('文件已存在，秒传成功！')
+        message.success('文件秒传成功！')
+      } else {
+        await uploadAllChunks()
+      }
+
+      options.onSuccess && options.onSuccess({}, file)
+    } catch (err: any) {
+      console.error('上传失败:', err)
+      setStatus('error')
+      setStatusText(`上传失败: ${err.message}`)
+      message.error(`上传失败: ${err.message}`)
+      options.onError && options.onError(err)
+    }
+  }
+
+  // 根据状态获取进度条颜色
+  const getProgressStatus = () => {
+    switch (status) {
+      case 'success':
+        return 'success'
+      case 'error':
+        return 'exception'
+      default:
+        return 'active'
+    }
   }
 
   return (
-    <div>
-      {/* <Upload {...props}> */}
-      <Upload customRequest={customUpload} showUploadList={true}>
-        <Button icon={<UploadOutlined />}>上传</Button>
+    <Card title='断点续传上传（Web Worker 优化）' style={{ maxWidth: 600 }}>
+      <Upload customRequest={customUpload} showUploadList={false}>
+        <Button icon={<UploadOutlined />} disabled={status === 'hashing' || status === 'uploading'}>
+          {status === 'idle' ? '选择文件' : status === 'hashing' || status === 'uploading' ? '上传中...' : '重新上传'}
+        </Button>
       </Upload>
-    </div>
+
+      {status !== 'idle' && (
+        <div style={{ marginTop: 20 }}>
+          {/* MD5 计算进度 */}
+          <div style={{ marginBottom: 16 }}>
+            <Text strong>MD5 计算进度：</Text>
+            <Progress
+              percent={hashProgress}
+              status={status === 'hashing' ? 'active' : hashProgress === 100 ? 'success' : 'normal'}
+              size='small'
+            />
+          </div>
+
+          {/* 上传进度 */}
+          <div style={{ marginBottom: 16 }}>
+            <Text strong>上传进度：</Text>
+            <Progress percent={uploadProgress} status={getProgressStatus()} size='small' />
+          </div>
+
+          {/* 状态文字 */}
+          <Text type={status === 'error' ? 'danger' : status === 'success' ? 'success' : 'secondary'}>
+            {statusText}
+          </Text>
+        </div>
+      )}
+    </Card>
   )
 }
