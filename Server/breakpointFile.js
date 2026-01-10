@@ -120,28 +120,28 @@ app.post('/api/upload/handshake', (req, res) => {
   const { fileId, ext, chunkIds } = fileInfo
   // console.log('接受的信息', fileInfo)接受的信息', fileInfo)
   if (!fileId) {
-    res.json({
+    return res.json({
       code: 403,
       msg: '请携带文件编号',
       data: null
     })
   }
   if (!ext) {
-    res.json({
+    return res.json({
       code: 403,
       msg: '请携带文件后缀，例如 .mp4',
       data: null
     })
   }
   if (!chunkIds) {
-    res.json({
+    return res.json({
       code: 403,
       msg: '请按顺序设置文件的分片编号数组',
       data: null
     })
   }
   saveFileInfo(fileId, ext, chunkIds)
-  res.json({
+  return res.json({
     code: 0,
     msg: '开始上传',
     data: chunkIds
@@ -155,14 +155,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   const file = req.file
 
   // 参数校验
-  if (!file) return res.send({ code: 403, msg: '请携带分片文件', data: null })
+  if (!file) return res.json({ code: 403, msg: '请携带分片文件', data: null })
   if (!chunkId) {
     await deleteChunk(file.path)
-    return res.send({ code: 403, msg: '请携带分片编号', data: null })
+    return res.json({ code: 403, msg: '请携带分片编号', data: null })
   }
   if (!fileId) {
     await deleteChunk(file.path)
-    return res.send({ code: 403, msg: '请携带文件编号', data: null })
+    return res.json({ code: 403, msg: '请携带文件编号', data: null })
   }
 
   try {
@@ -182,7 +182,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!fileInfo.needs.includes(chunkId)) {
       await deleteChunk(file.path)
       // 分片已上传，直接返回剩余需要的分片
-      return res.send({ code: 0, msg: '该分片已上传', data: fileInfo.needs })
+      return res.json({ code: 0, msg: '该分片已上传', data: fileInfo.needs })
     }
     //保存分片到chuktemp目录
     // const chunkPath = path.join(CHUNK_DIR, chunkId)
@@ -206,6 +206,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // fs.renameSync(oldPath, newPath)
     if (!fs.existsSync(newPath)) {
       fs.renameSync(oldPath, newPath)
+    } else {
+      // 如果目标文件已存在，删除临时文件
+      await deleteChunk(oldPath)
     }
 
     // 更新文件信息，移除已上传的分片 ID
@@ -216,14 +219,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (fileInfo.needs.length === 0) {
       // 全部完成，合并分片
       // await combineChunks(fileInfo)
-      return res.send({ code: 0, msg: '上传完成', data: [] })
+      return res.json({ code: 0, msg: '上传完成', data: [] })
     }
 
     console.log('你好啊')
     // 返回还需要上传的分片列表
-    return res.send({ code: 0, msg: '分片上传成功', data: fileInfo.needs })
+    return res.json({ code: 0, msg: '分片上传成功', data: fileInfo.needs })
   } catch (err) {
-    return res.send({ code: 403, msg: err.message, data: null })
+    return res.json({ code: 403, msg: err.message, data: null })
   }
 })
 
