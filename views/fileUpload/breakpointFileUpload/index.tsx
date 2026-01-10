@@ -1,169 +1,164 @@
-import { UploadOutlined } from '@ant-design/icons'
-import { Button, message, Upload } from 'antd'
 import SparkMD5 from 'spark-md5'
 import axios from 'axios'
-import { rejects } from 'assert'
-export default () => {
-  /**
-   * 需要注意的是:
-   * 1.info.file 是 Ant Design Upload 组件封装后的文件对象（包含 uid、name、status 等额外属性），并非浏览器原生的 File 对象，因此它没有 slice 方法。
-   * 2.可以使用info.file.originFileObj，info.file.originFileObj的Prototype是File，但info.file的Prototype是Object
-   */
+import { useRef, useState } from 'react'
 
-  const submitUpload = async (file: File) => {
-    return new Promise((resolve, reject) => {
-      let chunks = []
-      const chunkSize = 2 * 1024 * 1024 //2MB
-      let start = 0
-      let token = new Date().getTime().toString()
-      const totalSize = file.size
-      if (totalSize > chunkSize) {
-        while (start < totalSize) {
-          // 优化：用 Math.min 确保结束位置不超过文件总大小，避免切割出空片段
-          const end = Math.min(start + chunkSize, totalSize)
-          let sliceFile = file.slice(start, end)
-          chunks.push(sliceFile)
-          start += chunkSize
-        }
-      } else {
-        chunks.push(file.slice(0))
-      }
-      resolve(chunks)
-    })
-    /**
-    let sendChunkCount = 0;
-    for (let i = 0; i < chunks.length; i++) {
-      let fd = new FormData();
-      fd.append("token", token);
-      fd.append("f1", chunks[i]);
-      fd.append("index", i.toString());
-      axios.post("http://localhost:8101/", fd).then((res) => {
-        sendChunkCount += 1;
-        console.log("sendChunkCount", sendChunkCount);
-        if (sendChunkCount == chunks.length) {
-          console.log("上传完成，发送合并请求");
-          let fd = new FormData();
-          fd.append("type", "merge");
-          fd.append("token", token);
-          fd.append("chunkCount", totalSize.toString());
-          fd.append("filename", file.name);
-          axios.post("http://localhost:8100/", fd).then((res) => {});
-        }
-      });
+export default function NativeChunkUpload() {
+  const [progress, setProgress] = useState(0)
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [uploadLink, setUploadLink] = useState<string | null>(null) // 新增：显示完成链接
+  const chunksListRef = useRef<{ id: string; content: Blob }[]>([])
+  const fileIdRef = useRef<string>('')
+  const needsRef = useRef<string[]>([])
+  const totalChunksRef = useRef(0)
+
+  const CHUNK_SIZE = 2 * 1024 * 1024 // 2MB
+
+  const getFileChunks = (file: File): Blob[] => {
+    const chunks: Blob[] = []
+    let start = 0
+    while (start < file.size) {
+      const end = Math.min(start + CHUNK_SIZE, file.size)
+      chunks.push(file.slice(start, end))
+      start = end
     }
-      */
+    return chunks
   }
 
-  //   const sendFile()=>{
-
-  //   }
-
-  let needs
-  const customUpload = async options => {
-    let chunks = (await submitUpload(options.file)) as Blob[]
-    let fileInfo = await splitFile(options.file, chunks)
-    const { data } = await handleShake(fileInfo)
-    needs = data.data
-    // debugger
-    sliceUpload()
-
-    // submitUpload(options.file);
-  }
-
-  /**
-   * 文件分片
-   * @param file
-   */
-  let start = 0
-  const chunkSize = 2 * 1024 * 1024 //2MB
-  let end = 0
-  let fileReader = null
-  let chunksList = []
-  let fileId
-  const splitFile = async (file: File, chunks: Blob[]) => {
-    console.log('file', file)
-    console.log('chunksaaa', chunks)
-    let chunkIndex = 0
+  const splitFileAndCalculateHash = async (file: File): Promise<{
+    fileId: string
+    ext: string
+    chunks: { id: string; content: Blob }[]
+  }> => {
     return new Promise((resolve, reject) => {
-      //使用ArrayBuffer完成文件MD5编码
       const spark = new SparkMD5.ArrayBuffer()
-      fileReader = new FileReader() //文件读取器
-      fileReader.onload = e => {
-        start = end
-        console.log('e', e)
-        let chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex
+      const fileReader = new FileReader()
+      const chunks: { id: string; content: Blob }[] = []
+      let chunkIndex = 0
+
+      fileReader.onload = (e) => {
+        const result = e.target?.result as ArrayBuffer | null
+        if (!result) return reject(new Error('读取分片失败'))
+
+        const chunkHash = SparkMD5.ArrayBuffer.hash(result) + chunkIndex
         chunkIndex++
-        spark.append(e.target.result)
-        chunksList.push({
-          id: chunkMD5,
-          content: new Blob([e.target.result])
-        })
-        // new Blob([e.target.result]
-        if (chunkIndex < chunks.length) {
-          loadNext(file)
+
+        spark.append(result)
+        chunks.push({ id: chunkHash, content: new Blob([result]) })
+
+        if (chunkIndex < totalChunksRef.current) {
+          loadNext()
         } else {
-          fileId = spark.end()
-          console.log('fileId', fileId)
+          const fileId = spark.end()
+          fileIdRef.current = fileId
+          chunksListRef.current = chunks
           resolve({
             fileId,
-            ext: file.name.split('.').slice(-1)[0],
-            chunks: chunksList
+            ext: file.name.split('.').pop() || '',
+            chunks
           })
         }
       }
-      loadNext(file)
-      //   for (let i = 0; i < chunks.length; i++) {
-      //     spark.append("")
-      //   }
+
+      fileReader.onerror = reject
+
+      const loadNext = () => {
+        const start = chunkIndex * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        fileReader.readAsArrayBuffer(file.slice(start, end))
+      }
+
+      totalChunksRef.current = getFileChunks(file).length
+      loadNext()
     })
   }
-  /**
-   * 读取下一个分片
-   */
-  const loadNext = (file: File) => {
-    end = start + chunkSize
-    fileReader.readAsArrayBuffer(file.slice(start, end))
-  }
 
-  /**
-   * 传递SparkMd5加密数组
-   */
-  const handleShake = async fileInfo => {
+  const handshake = async (fileInfo: { fileId: string; ext: string; chunkIds: string[] }) => {
     try {
-      let params = {
-        ...fileInfo,
-        chunkIds: fileInfo.chunks.map(item => item.id)
-      }
-      delete params.chunks
-      let res = await axios.post('http://localhost:8101/api/upload/handshake', params)
-      return res //// async 函数会自动将返回值包装成 Promise.resolve
+      const res = await axios.post('http://localhost:8101/api/upload/handshake', fileInfo)
+      console.log('握手响应:', res.data) // 新增：打印响应到控制台，便于查看
+      return res.data
     } catch (err) {
-      throw err // async 函数中抛出错误会被包装成 Promise.reject
+      console.error('握手失败:', err)
+      throw new Error('握手失败')
     }
   }
 
-  /**
-   * 分片上传
-   */
-  const sliceUpload = async () => {
-    if (needs.length == 0) return
-    const chunkId = needs[0]
-    let fd = new FormData()
-    fd.append('file', chunksList.find(item => item.id == chunkId).content)
-    fd.append('chunkId', chunkId)
-    fd.append('fileId', fileId)
-    let res = await axios.post('http://localhost:8101/api/upload/', fd)
-    console.log('res', res)
-    needs = res.data.data
-    sliceUpload()
+  const uploadChunk = async () => {
+    if (needsRef.current.length === 0) {
+      setStatus('done')
+      setProgress(100)
+      const link = `http://localhost:8101/upload/${fileIdRef.current}` // 假设的合并链接
+      setUploadLink(link)
+      console.log('上传完成！文件链接：', link)
+      return
+    }
+
+    const chunkId = needsRef.current[0]
+    const chunkItem = chunksListRef.current.find((item) => item.id === chunkId)
+
+    if (!chunkItem) return
+
+    const formData = new FormData()
+    formData.append('file', chunkItem.content)
+    formData.append('chunkId', chunkId)
+    formData.append('fileId', fileIdRef.current)
+
+    try {
+      const res = await axios.post('http://localhost:8101/api/upload/', formData)
+      console.log(`分片 ${chunkId} 响应:`, res.data) // 新增：每个分片打印响应，便于调试
+      needsRef.current = res.data.data || []
+
+      const uploaded = totalChunksRef.current - needsRef.current.length
+      setProgress(Math.ceil((uploaded / totalChunksRef.current) * 100))
+
+      uploadChunk() // 递归继续
+    } catch (err) {
+      setStatus('error')
+      console.error('分片上传失败:', err)
+    }
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault() // 新增：防止任何潜在默认行为（如隐式提交）
+    event.stopPropagation() // 新增：停止事件冒泡，防止上层干扰
+
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setStatus('uploading')
+    setProgress(0)
+    setUploadLink(null) // 重置链接
+
+    try {
+      const fileInfo = await splitFileAndCalculateHash(file)
+
+      const handshakeData = {
+        fileId: fileInfo.fileId,
+        ext: fileInfo.ext,
+        chunkIds: fileInfo.chunks.map((c) => c.id)
+      }
+
+      const handshakeRes = await handshake(handshakeData)
+      needsRef.current = handshakeRes.data || []
+
+      uploadChunk()
+    } catch (err) {
+      setStatus('error')
+      console.error(err)
+    }
   }
 
   return (
-    <div>
-      {/* <Upload {...props}> */}
-      <Upload customRequest={customUpload} showUploadList={true}>
-        <Button icon={<UploadOutlined />}>上传</Button>
-      </Upload>
+    <div style={{ padding: '40px' }}>
+      <input type="file" onChange={handleFileChange} />
+      {status === 'uploading' && <p>上传进度: {progress}%</p>}
+      {status === 'done' && (
+        <>
+          <p>上传完成！</p>
+          {uploadLink && <a href={uploadLink} target="_blank" rel="noopener noreferrer">查看文件</a>} {/* 新增：显示链接，避免 console */}
+        </>
+      )}
+      {status === 'error' && <p>上传失败，请重试</p>}
     </div>
   )
 }
