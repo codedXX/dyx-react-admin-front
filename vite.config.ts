@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      watch: {
+        ignored: ['**/chunktemp/**', '**/filetemp/**', '**/file/**', '**/test/**']  // 忽略这些目录变化
+      }
     },
     plugins: [react()],
     define: {
