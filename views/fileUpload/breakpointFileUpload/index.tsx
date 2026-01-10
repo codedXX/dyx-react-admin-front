@@ -30,7 +30,7 @@ export default () => {
       }
       resolve(chunks)
     })
-    /** 
+    /**
     let sendChunkCount = 0;
     for (let i = 0; i < chunks.length; i++) {
       let fd = new FormData();
@@ -154,7 +154,7 @@ export default () => {
     fd.append('fileId', fileId)
     let res = await axios.post('http://localhost:8101/api/upload/', fd)
     console.log('res', res)
-    needs = res.data
+    needs = res.data.data
     sliceUpload()
   }
 
